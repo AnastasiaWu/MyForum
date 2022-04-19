@@ -94,7 +94,7 @@ public class Server {
                     listThreads(spec, request);
                     break;
                 case "RDT":
-                    readThread();
+                    readThread(spec, request);
                     break;
                 case "UPD":
                     uploadFile();
@@ -366,7 +366,7 @@ public class Server {
 
     private static void listThreads(String[] command, DatagramPacket request) throws Exception {
         String userName = command[0];
-        System.out.println(userName + " issued CRT command");
+        System.out.println(userName + " issued LST command");
         if (threadInfo.size() == 0) {
             UDPSend(request, "FALSE");
             return;
@@ -381,8 +381,45 @@ public class Server {
 
     }
 
-    private static void readThread() {
-    };
+    private static void readThread(String[] command, DatagramPacket request) throws Exception {
+        String[] spec = command[0].split(" ");
+        String userName = spec[0];
+        String threadName = spec[1];
+        // DEBUG
+        // System.out.println(threadName + " " + userName);
+
+        System.out.println(userName + " issued RDT command");
+
+        // Thread name does not exist
+        if (!threadInfo.containsKey(threadName)) {
+            UDPSend(request, "FALSE");
+            System.out.println("Thread " + (String) threadName + " does not exist.");
+            return;
+        }
+        Map thread = (Map) threadInfo.get(threadName);
+        // Thread empty
+        if ((int) thread.get("counter") == 0) {
+            UDPSend(request, "EMPTY");
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        BufferedReader reader = new BufferedReader(new FileReader(threadName));
+        String currentLine;
+        // get rid of the first line
+        currentLine = reader.readLine();
+
+        while ((currentLine = reader.readLine()) != null) {
+            sb.append(currentLine + "\n");
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        reader.close();
+
+        UDPSend(request, sb.toString());
+        // DEBUG
+        // System.out.println(sb.toString());
+        // TODO: uploadFile();
+        return;
+    }
 
     private static void uploadFile() {
     };

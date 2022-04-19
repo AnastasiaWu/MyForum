@@ -66,7 +66,7 @@ public class Client {
                     listThreads();
                     break;
                 case "RDT":
-                    readThread();
+                    readThread(spec);
                     break;
                 case "UPD":
                     uploadFile();
@@ -309,8 +309,32 @@ public class Client {
         }
     }
 
-    private static void readThread() {
-    };
+    private static void readThread(String[] command) {
+        if (command[0].split(" ").length != 1) {
+            System.out.println("ERROR: Invalid input.");
+            return;
+        }
+        String threadName = command[0];
+        try {
+            String data = String.join(" ", "RDT", userName, stringArrayToString(command));
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("FALSE")) {
+                System.out.println("ERROR: Thread title does not exist.");
+            } else if (response.equals("EMPTY")) {
+                System.out.println("Thread " + threadName + " is empty.");
+            } else {
+                System.out.println(response);
+            }
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
+            System.out.println("Warning: Packet Timeout.");
+            readThread(command);
+            return;
+        } catch (Exception e) {
+            System.out.println("ERROR");
+        }
+    }
 
     private static void uploadFile() {
     };
