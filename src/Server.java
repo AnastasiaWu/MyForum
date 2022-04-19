@@ -84,7 +84,7 @@ public class Server {
                     postMessage(spec, request);
                     break;
                 case "DLT":
-                    deleteMessage();
+                    deleteMessage(spec, request);
                     break;
                 case "EDT":
                     editMessage();
@@ -236,8 +236,68 @@ public class Server {
         System.out.println("Message posted to " + threadName + " thread");
     }
 
-    private static void deleteMessage() {
-    };
+    private static void deleteMessage(String[] command, DatagramPacket request) throws Exception {
+        String[] spec = command[0].split(" ");
+        String userName = spec[0];
+        String threadName = spec[1];
+        String messageID = spec[2];
+        // DEBUG
+        System.out.println(threadName + " " + userName + " " + messageID);
+
+        System.out.println(userName + " issued DLT command");
+
+        // Thread name does not exist
+        if (!threadInfo.containsKey(threadName)) {
+            UDPSend(request, "NOTHREAD");
+            System.out.println("Thread " + (String) threadName + " does not exist.");
+            return;
+        }
+
+        File inputFile = new File(threadName);
+        File tempFile = new File(threadName + "Temp");
+        BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+        String currentLine;
+        boolean exist = false;
+        boolean right = false;
+        while ((currentLine = reader.readLine()) != null) {
+            // Invalid message ID
+            // DEBUG
+            // System.out.println(currentLine);
+            if (currentLine.startsWith(messageID)) {
+                exist = true;
+                // Check user right
+                if (currentLine.startsWith(messageID + " " + userName)) {
+                    right = true;
+                    continue;
+                }
+            }
+            // trim newline
+            currentLine.trim();
+            writer.write(currentLine + System.getProperty("line.separator"));
+        }
+        writer.close();
+        reader.close();
+        inputFile.delete();
+        boolean rename = tempFile.renameTo(inputFile);
+        tempFile.delete();
+        if (!exist) {
+            // No message ID
+            UDPSend(request, "NOMESSAGEID");
+            System.out.println("Message does not exist.");
+            return;
+        } else if (!right) {
+            // No right
+            UDPSend(request, "NOUSER");
+            System.out.println("Message cannot be deleted.");
+            return;
+        } else if (rename) {
+            UDPSend(request, "TRUE");
+            System.out.println("Message has been deleted.");
+        } else {
+            System.out.println("File rename failed.");
+        }
+    }
 
     private static void editMessage() {
     };

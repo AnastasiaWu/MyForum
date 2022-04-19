@@ -57,7 +57,7 @@ public class Client {
                     postMessage(spec);
                     break;
                 case "DLT":
-                    deleteMessage();
+                    deleteMessage(spec);
                     break;
                 case "EDT":
                     editMessage();
@@ -218,10 +218,38 @@ public class Client {
         } catch (Exception e) {
             System.out.println("ERROR");
         }
-    };
+    }
 
-    private static void deleteMessage() {
-    };
+    private static void deleteMessage(String[] command) {
+        if (command[0].split(" ").length != 2) {
+            System.out.println("ERROR: Invalid input.");
+            return;
+        }
+        try {
+            // DEBUG
+            // for (int i = 0; i < command.length; i++)
+            // System.out.println(command[i]);
+            String data = String.join(" ", "DLT", userName, stringArrayToString(command));
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("NOTHREAD")) {
+                System.out.println("ERROR: Invalid thread title.");
+            } else if (response.equals("NOMESSAGEID")) {
+                System.out.println("ERROR: Invalid message ID.");
+            } else if (response.equals("NOUSER")) {
+                System.out.println("ERROR: Invalid permission.");
+            } else if (response.equals("TRUE")) {
+                System.out.println("The message has been deleted.");
+            }
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
+            System.out.println("Warning: Packet Timeout.");
+            deleteMessage(command);
+            return;
+        } catch (Exception e) {
+            System.out.println("ERROR");
+        }
+    }
 
     private static void editMessage() {
     };
