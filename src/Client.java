@@ -28,6 +28,7 @@ public class Client {
         // Socket settle
         // create socket which connects to server
         clientSocket = new DatagramSocket();
+        clientSocket.setSoTimeout(1000);
 
         // Authentication
         while (true) {
@@ -96,17 +97,23 @@ public class Client {
     };
 
     private static boolean authentication() throws Exception {
-        if (authentication_name())
-            return authentication_psw();
-        return false;
-    }
-
-    private static boolean authentication_name() throws Exception {
         // print out message and get username
         String name;
         System.out.print("Enter username: ");
         BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
         name = inFromUser.readLine();
+        if (authentication_name(name)) {
+            // print out message and get password
+            String psw;
+            System.out.print("Enter password: ");
+            inFromUser = new BufferedReader(new InputStreamReader(System.in));
+            psw = inFromUser.readLine();
+            return authentication_psw(psw);
+        }
+        return false;
+    }
+
+    private static boolean authentication_name(String name) throws Exception {
         try {
             UDPSend(String.join(" ", "name", name));
             String response = castResponse(UDPReceive());
@@ -120,19 +127,19 @@ public class Client {
                 System.out.println("ERROR: Already logged in.\n");
                 return false;
             }
-        } catch (Exception e) {
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
             System.out.println("Warning: Packet Timeout.");
+            authentication_name(name);
+            return true;
+        } catch (Exception e) {
+            System.out.println("ERROR");
         }
         return false;
 
     }
 
-    private static boolean authentication_psw() throws Exception {
-        // print out message and get password
-        String psw;
-        System.out.print("Enter password: ");
-        BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
-        psw = inFromUser.readLine();
+    private static boolean authentication_psw(String psw) throws Exception {
         try {
             UDPSend(String.join(" ", "psw", userName, psw));
             String response = castResponse(UDPReceive());
@@ -142,8 +149,13 @@ public class Client {
                 System.out.println("ERROR: Incorrect password.\n");
                 return false;
             }
-        } catch (Exception e) {
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
             System.out.println("Warning: Packet Timeout.");
+            authentication_psw(psw);
+            return true;
+        } catch (Exception e) {
+            System.out.println("ERROR");
         }
         return false;
     }
@@ -180,8 +192,13 @@ public class Client {
             } else if (response.equals("FALSE")) {
                 System.out.println("ERROR: Thread " + (String) command[0] + " exists.");
             }
-        } catch (Exception e) {
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
             System.out.println("Warning: Packet Timeout.");
+            createThread(command);
+            return;
+        } catch (Exception e) {
+            System.out.println("ERROR");
         }
     }
 

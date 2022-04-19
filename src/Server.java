@@ -38,6 +38,9 @@ public class Server {
 
     static String buffer;
 
+    // DEBUG
+    private static final int AVERAGE_DELAY = 1000; // milliseconds
+
     public static void main(String[] args) throws Exception {
         // Check the input
         if (args.length != 1) {
@@ -235,6 +238,11 @@ public class Server {
     };
 
     private static void UDPSend(DatagramPacket request, String sentence) throws Exception {
+        // DEBUG: Simulate network delay.
+        Random random = new Random();
+        Thread.sleep((int) (random.nextDouble() * 2 * AVERAGE_DELAY));
+
+        buffer = sentence;
         InetAddress clientHost = request.getAddress();
         int clientPort = request.getPort();
         sentence = String.join(" ", Integer.toString(ACK), Integer.toString(Seq),
@@ -242,7 +250,6 @@ public class Server {
         byte[] buf = sentence.getBytes();
         DatagramPacket reply = new DatagramPacket(buf, buf.length, clientHost, clientPort);
         serverSocket.send(reply);
-        buffer = sentence;
     }
 
     // For resent
