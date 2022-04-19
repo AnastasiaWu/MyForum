@@ -3,14 +3,9 @@ import java.io.*;
 import java.net.*;
 import java.nio.*;
 // userInfo{
-//  {
-//      userName: hans,
+//  userName: {
 //      psw: falcon*solo,
 //      status: online,
-//   },{
-//      userName: yoda,
-//      psw: wise@!man,
-//      status: offline,
 //   },
 // }
 
@@ -19,7 +14,6 @@ import java.nio.*;
 //          owner:,
 //          counter:,    
 //      },
-//  }
 // }
 
 // "ACK Seq Length message"
@@ -77,14 +71,17 @@ public class Server {
             DatagramPacket request = (DatagramPacket) response.get("request");
             String content = castResponse((String) response.get("content"));
             Map commands = commandParse(content);
+            // command is command sign (CRT, MSG...)
             String command = (String) commands.get("command");
+            // value is the thing after command sign(CRT, MSG...)
             String[] spec = (String[]) commands.get("value");
+
             switch (command) {
                 case "CRT":
                     createThread(spec, request);
                     break;
                 case "MSG":
-                    postMessage();
+                    postMessage(spec, request);
                     break;
                 case "DLT":
                     deleteMessage();
@@ -187,7 +184,7 @@ public class Server {
         File file = new File((String) fileName);
         if (file.exists()) {
             UDPSend(request, "FALSE");
-            System.out.println("Thread " + (String) fileName + " exists");
+            System.out.println("Thread " + (String) fileName + " exists.");
             return;
         }
         // create thread
@@ -208,10 +205,36 @@ public class Server {
         threadInfo.put(fileName, info);
         UDPSend(request, "TRUE");
         System.out.println("Thread " + (String) fileName + " created.");
-    };
+    }
 
-    private static void postMessage() {
-    };
+    private static void postMessage(String[] command, DatagramPacket request) throws Exception {
+        String[] spec = command[0].split(" ");
+        String threadName = spec[1];
+        String userName = spec[0];
+        String message = stringArrayToString(spec, 2, spec.length - 1);
+        // DEBUG
+        System.out.println(threadName + " " + userName + " " + message);
+
+        System.out.println(userName + " issued MSG command");
+        // Thread name does not exist
+        if (!threadInfo.containsKey(threadName)) {
+            UDPSend(request, "FALSE");
+            System.out.println("Thread " + (String) threadName + " does not exist.");
+            return;
+        }
+        Map thread = (Map) threadInfo.get(threadName);
+        int counter = (int) thread.get("counter");
+        counter += 1;
+        FileWriter myWriter = new FileWriter(threadName, true);
+        myWriter.write(Integer.toString(counter) + " "
+                + (String) userName + ": " + message + "\n");
+        myWriter.close();
+        thread.replace("counter", counter);
+        // DEBUG
+        // System.out.println((int) thread.get("counter"));
+        UDPSend(request, "TRUE");
+        System.out.println("Message posted to " + threadName + " thread");
+    }
 
     private static void deleteMessage() {
     };
@@ -318,6 +341,7 @@ public class Server {
     };
 
     // HELPER FUNCTION
+    // get rid of '\0' at the end of the function
     private static String castResponse(String response) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < response.length(); i++) {
@@ -330,6 +354,7 @@ public class Server {
         return sb.toString();
     };
 
+    // split the command sign and the rest => ['CRT', '3331 Network is awesome']
     private static Map commandParse(String command) {
         List<String> commandList = Arrays.asList("CRT", "MSG", "LST", "RDT", "EDT", "DLT", "RMV", "UPD", "DWN",
                 "XIT");
@@ -369,4 +394,25 @@ public class Server {
         // System.out.println(sb.toString());
         return result;
     }
+
+    private static String stringArrayToString(String[] input) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < input.length; i++) {
+            sb.append(input[i]);
+            if (i != input.length - 1)
+                sb.append(" ");
+        }
+        return sb.toString();
+    }
+
+    private static String stringArrayToString(String[] input, int start, int end) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i <= end; i++) {
+            sb.append(input[i]);
+            if (i != end)
+                sb.append(" ");
+        }
+        return sb.toString();
+    }
+
 }

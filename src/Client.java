@@ -1,9 +1,6 @@
 import java.io.*;
 import java.net.*;
-import java.text.SimpleDateFormat;
 import java.util.*;
-
-import javax.swing.text.html.HTMLDocument.RunElement;
 
 public class Client {
     static DatagramSocket clientSocket;
@@ -57,7 +54,7 @@ public class Client {
                     createThread(spec);
                     break;
                 case "MSG":
-                    postMessage();
+                    postMessage(spec);
                     break;
                 case "DLT":
                     deleteMessage();
@@ -202,7 +199,25 @@ public class Client {
         }
     }
 
-    private static void postMessage() {
+    private static void postMessage(String[] command) {
+        String threadName = command[0].split(" ")[0];
+        try {
+            String data = String.join(" ", "MSG", userName, stringArrayToString(command));
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("FALSE")) {
+                System.out.println("ERROR: Thread title " + threadName + " does not exist.");
+            } else if (response.equals("TRUE")) {
+                System.out.println("Message posted to " + threadName + " thread.");
+            }
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
+            System.out.println("Warning: Packet Timeout.");
+            postMessage(command);
+            return;
+        } catch (Exception e) {
+            System.out.println("ERROR");
+        }
     };
 
     private static void deleteMessage() {
