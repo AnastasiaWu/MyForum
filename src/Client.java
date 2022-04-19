@@ -69,7 +69,7 @@ public class Client {
                     readThread(spec);
                     break;
                 case "UPD":
-                    uploadFile();
+                    uploadFile(spec);
                     break;
                 case "DWN":
                     downloadFile();
@@ -336,11 +336,40 @@ public class Client {
         }
     }
 
-    private static void uploadFile() {
-    };
+    private static void uploadFile(String[] command) {
+        String[] ans = command[0].split(" ");
+        if (ans.length != 2) {
+            System.out.println("ERROR: Invalid input.");
+            return;
+        }
+        String threadName = ans[0];
+        String fileName = ans[1];
+        try {
+            String data = String.join(" ", "UPD", userName, stringArrayToString(command));
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("NOTHREAD")) {
+                System.out.println("ERROR: Thread title " + threadName + " does not exist.");
+            } else if (response.equals("FILEEXIST")) {
+                System.out.println("File already exist.");
+            } else {
+                // Transfer the file
+                TCPSend(fileName);
+                System.out.println(fileName + " uploaded to " + threadName + " thread.");
+            }
+
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
+            System.out.println("Warning: Packet Timeout.");
+            readThread(command);
+            return;
+        } catch (Exception e) {
+            System.out.println("ERROR");
+        }
+    }
 
     private static void downloadFile() {
-    };
+    }
 
     private static void removeThread(String[] command) {
         if (command[0].split(" ").length != 1) {
@@ -426,11 +455,26 @@ public class Client {
         return response;
     };
 
-    private static void TCPSend() {
-    };
+    private static void TCPSend(String fileName) throws Exception {
+        // prepare for sending
+        Socket clientSocketTCP = new Socket("localhost", serverPort);
+        // Output to the socket data stream, we use DataOutputStream
+        DataOutputStream outToServer = new DataOutputStream(clientSocketTCP.getOutputStream());
+        // Read from the binary file, we use FileInputStream
+        InputStream inputStream = new FileInputStream(fileName);
+        // Write the binary file to socket data stream and send it
+        int byteRead = -1;
+        while ((byteRead = inputStream.read()) != -1) {
+            outToServer.writeByte(byteRead);
+        }
+        // Close the file
+        inputStream.close();
+        // close the server
+        clientSocketTCP.close();
+    }
 
-    private static void TCPReceive() {
-    };
+    // private static void TCPReceive() {
+    // }
 
     private static String castResponse(String response) {
         StringBuilder sb = new StringBuilder();

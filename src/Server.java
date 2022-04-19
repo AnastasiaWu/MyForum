@@ -14,6 +14,7 @@ import java.nio.*;
 //      threadName: {
 //          owner:,
 //          counter:,    
+//          files:[],
 //      },
 // }
 
@@ -25,6 +26,7 @@ public class Server {
     static ArrayList clientThread = new ArrayList<HashMap>();
 
     static DatagramSocket serverSocket;
+
     static InetAddress IPAddress;
     static int serverPort;
 
@@ -93,7 +95,7 @@ public class Server {
                     readThread(spec, request);
                     break;
                 case "UPD":
-                    uploadFile();
+                    uploadFile(spec, request);
                     break;
                 case "DWN":
                     downloadFile();
@@ -207,8 +209,10 @@ public class Server {
         myWriter.close();
         // set the database
         Map info = new HashMap<>();
+        Map files = new HashMap<>();
         info.put("owner", userName);
         info.put("counter", 0);
+        info.put("files", files);
         threadInfo.put(fileName, info);
         UDPSend(request, "TRUE");
         System.out.println("Thread " + (String) fileName + " created.");
@@ -427,8 +431,46 @@ public class Server {
         return;
     }
 
-    private static void uploadFile() {
-    };
+    private static void uploadFile(String[] command, DatagramPacket request) throws Exception {
+        String[] spec = command[0].split(" ");
+        String userName = spec[0];
+        String threadName = spec[1];
+        String fileName = spec[2];
+        // DEBUG
+        // System.out.println(threadName + " " + userName);
+
+        System.out.println(userName + " issued UPD command");
+
+        // Thread name does not exist
+        if (!threadInfo.containsKey(threadName)) {
+            UDPSend(request, "NOTHREAD");
+            System.out.println("Thread " + (String) threadName + " does not exist.");
+            return;
+        }
+        Map thread = (Map) threadInfo.get(threadName);
+        Map files = (Map) thread.get("files");
+        // File already exist
+        if (files.containsKey(fileName)) {
+            UDPSend(request, "FILEEXIST");
+            return;
+        }
+        UDPSend(request, "TRUE");
+        // Prepare the new file name
+        String newFileName = threadName.concat("-" + fileName);
+        // Receive the new file
+        TCPReceive(newFileName);// DEBUG
+        System.out.println("File created.");
+        // Check if uploaded
+        // File file = new File((String) newFileName);
+        // if (file.exists()) {
+        // // Update the database
+        // thread.put("files", files.put(fileName, userName));
+        // // Update in the thread
+        // FileWriter myWriter = new FileWriter(fileName);
+        // myWriter.write(userName + " uploaded " + fileName);
+        // }
+        return;
+    }
 
     private static void downloadFile() {
     };
@@ -543,11 +585,23 @@ public class Server {
         return response;
     };
 
-    private static void TCPSend() throws Exception {
-    };
+    // private static void TCPSend() throws Exception {
+    // }
 
-    private static void TCPReceive() throws Exception {
-    };
+    private static void TCPReceive(String fileName) throws Exception {
+        // Welcome socket
+        ServerSocket welcomeSocketTCP = new ServerSocket(serverPort);
+        // accept connection from connection queue
+        Socket connectionSocket = welcomeSocketTCP.accept();
+        // create read stream to get input
+        InputStream inFromClient = connectionSocket.getInputStream();
+        // create the stream to store the input
+        OutputStream outputStream = new FileOutputStream(fileName);
+        outputStream.write(inFromClient.read());
+        outputStream.close();
+        connectionSocket.close();
+        return;
+    }
 
     // HELPER FUNCTION
     // get rid of '\0' at the end of the function
