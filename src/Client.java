@@ -60,7 +60,7 @@ public class Client {
                     deleteMessage(spec);
                     break;
                 case "EDT":
-                    editMessage();
+                    editMessage(spec);
                     break;
                 case "LST":
                     listThreads();
@@ -251,11 +251,63 @@ public class Client {
         }
     }
 
-    private static void editMessage() {
-    };
+    private static void editMessage(String[] command) {
+        if (command[0].split(" ").length != 3) {
+            System.out.println("ERROR: Invalid input.");
+            return;
+        }
+        try {
+            // DEBUG
+            // for (int i = 0; i < command.length; i++)
+            // System.out.println(command[i]);
+            String data = String.join(" ", "EDT", userName, stringArrayToString(command));
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("NOTHREAD")) {
+                System.out.println("ERROR: Invalid thread title.");
+            } else if (response.equals("NOMESSAGEID")) {
+                System.out.println("ERROR: Invalid message ID.");
+            } else if (response.equals("NOUSER")) {
+                System.out.println("ERROR: Invalid permission.");
+            } else if (response.equals("TRUE")) {
+                System.out.println("The message has been edited.");
+            }
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
+            System.out.println("Warning: Packet Timeout.");
+            editMessage(command);
+            return;
+        } catch (Exception e) {
+            System.out.println("ERROR");
+        }
+    }
 
     private static void listThreads() {
-    };
+        try {
+            // DEBUG
+            // for (int i = 0; i < command.length; i++)
+            // System.out.println(command[i]);
+            String data = String.join(" ", "LST", userName);
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("FALSE")) {
+                System.out.println("No threads to list.");
+            } else {
+                System.out.println("The list of the active thread: ");
+                String[] threadsActive = response.split(",");
+                for (int i = 0; i < threadsActive.length; i++) {
+                    System.out.println(threadsActive[i]);
+                }
+            }
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
+            System.out.println("Warning: Packet Timeout.");
+            listThreads();
+            return;
+        } catch (Exception e) {
+            System.out.println("ERROR");
+        }
+    }
 
     private static void readThread() {
     };

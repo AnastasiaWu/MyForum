@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.Map.Entry;
 import java.io.*;
 import java.net.*;
 import java.nio.*;
@@ -87,10 +88,10 @@ public class Server {
                     deleteMessage(spec, request);
                     break;
                 case "EDT":
-                    editMessage();
+                    editMessage(spec, request);
                     break;
                 case "LST":
-                    listThreads();
+                    listThreads(spec, request);
                     break;
                 case "RDT":
                     readThread();
@@ -213,7 +214,7 @@ public class Server {
         String userName = spec[0];
         String message = stringArrayToString(spec, 2, spec.length - 1);
         // DEBUG
-        System.out.println(threadName + " " + userName + " " + message);
+        // System.out.println(threadName + " " + userName + " " + message);
 
         System.out.println(userName + " issued MSG command");
         // Thread name does not exist
@@ -299,11 +300,86 @@ public class Server {
         }
     }
 
-    private static void editMessage() {
+    private static void editMessage(String[] command, DatagramPacket request) throws Exception {
+        String[] spec = command[0].split(" ");
+        String userName = spec[0];
+        String threadName = spec[1];
+        String messageID = spec[2];
+        String message = spec[3];
+        // DEBUG
+        // System.out.println(threadName + " " + userName + " " + messageID + " " +
+        // message);
+
+        System.out.println(userName + " issued EDT command");
+
+        // Thread name does not exist
+        if (!threadInfo.containsKey(threadName)) {
+            UDPSend(request, "NOTHREAD");
+            System.out.println("Thread " + (String) threadName + " does not exist.");
+            return;
+        }
+
+        File inputFile = new File(threadName);
+        File tempFile = new File(threadName + "Temp");
+        BufferedReader reader = new BufferedReader(new FileReader(inputFile));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+        String currentLine;
+        boolean exist = false;
+        boolean right = false;
+        while ((currentLine = reader.readLine()) != null) {
+            // Invalid message ID
+            if (currentLine.startsWith(messageID)) {
+                exist = true;
+                // Check user right
+                if (currentLine.startsWith(messageID + " " + userName)) {
+                    right = true;
+                    writer.write(messageID + " " + userName + ": " + message + System.getProperty("line.separator"));
+                    continue;
+                }
+            }
+            // trim newline
+            currentLine.trim();
+            writer.write(currentLine + System.getProperty("line.separator"));
+        }
+        writer.close();
+        reader.close();
+        inputFile.delete();
+        boolean rename = tempFile.renameTo(inputFile);
+        tempFile.delete();
+        if (!exist) {
+            // No message ID
+            UDPSend(request, "NOMESSAGEID");
+            System.out.println("Message does not exist.");
+            return;
+        } else if (!right) {
+            // No right
+            UDPSend(request, "NOUSER");
+            System.out.println("Message cannot be deleted.");
+            return;
+        } else if (rename) {
+            UDPSend(request, "TRUE");
+            System.out.println("Message has been deleted.");
+        } else {
+            System.out.println("File rename failed.");
+        }
     };
 
-    private static void listThreads() {
-    };
+    private static void listThreads(String[] command, DatagramPacket request) throws Exception {
+        String userName = command[0];
+        System.out.println(userName + " issued CRT command");
+        if (threadInfo.size() == 0) {
+            UDPSend(request, "FALSE");
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        threadInfo.forEach((key, tab) -> sb.append(key + ","));
+        sb.deleteCharAt(sb.length() - 1);
+        // DEBUG
+        // System.out.println(sb.toString());
+        UDPSend(request, sb.toString());
+        return;
+
+    }
 
     private static void readThread() {
     };
