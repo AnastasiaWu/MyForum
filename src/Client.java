@@ -75,7 +75,7 @@ public class Client {
                     downloadFile();
                     break;
                 case "RMV":
-                    removeThread();
+                    removeThread(spec);
                     break;
                 case "XIT":
                     int code = exit();
@@ -342,8 +342,32 @@ public class Client {
     private static void downloadFile() {
     };
 
-    private static void removeThread() {
-    };
+    private static void removeThread(String[] command) {
+        if (command[0].split(" ").length != 1) {
+            System.out.println("ERROR: Invalid input.");
+            return;
+        }
+        String threadName = command[0];
+        try {
+            String data = String.join(" ", "RMV", userName, stringArrayToString(command));
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("FALSE")) {
+                System.out.println("ERROR: Thread cannot be removed.");
+            } else if (response.equals("NOPERMISSION")) {
+                System.out.println("ERROR: The thread was created by another user and cannot be removed.");
+            } else if (response.equals("TRUE")) {
+                System.out.println("Thread " + threadName + " has been removed.");
+            }
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
+            System.out.println("Warning: Packet Timeout.");
+            removeThread(command);
+            return;
+        } catch (Exception e) {
+            System.out.println("ERROR");
+        }
+    }
 
     private static int exit() {
         return 0;

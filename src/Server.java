@@ -103,7 +103,7 @@ public class Server {
                     downloadFile();
                     break;
                 case "RMV":
-                    removeThread();
+                    removeThread(spec, request);
                     break;
                 case "XIT":
                     int code = exit();
@@ -427,8 +427,33 @@ public class Server {
     private static void downloadFile() {
     };
 
-    private static void removeThread() {
-    };
+    private static void removeThread(String[] command, DatagramPacket request) throws Exception {
+        String[] spec = command[0].split(" ");
+        String userName = spec[0];
+        String threadName = spec[1];
+        // DEBUG
+        System.out.println(threadName + " " + userName);
+
+        System.out.println(userName + " issued RMV command");
+
+        // Thread name does not exist
+        if (!threadInfo.containsKey(threadName)) {
+            UDPSend(request, "FALSE");
+            System.out.println("Thread " + (String) threadName + " does not exist.");
+            return;
+        }
+        // User access right fail
+        if (!((String) ((Map) threadInfo.get(threadName)).get("owner")).equals(userName)) {
+            UDPSend(request, "NOPERMISSION");
+            System.out.println("User has no permission to remove the thread.");
+            return;
+        }
+        File file = new File(threadName);
+        file.delete();
+        // TODO: remove the upload file
+        System.out.println("Thread " + threadName + " has been removed.");
+        return;
+    }
 
     private static int exit() {
         return 0;
