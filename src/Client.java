@@ -78,7 +78,7 @@ public class Client {
                     removeThread(spec);
                     break;
                 case "XIT":
-                    int code = exit();
+                    int code = exit(spec);
                     if (code == 0) {
                         clientSocket.close();
                         return;
@@ -369,9 +369,25 @@ public class Client {
         }
     }
 
-    private static int exit() {
-        return 0;
-    };
+    private static int exit(String[] command) {
+        try {
+            String data = String.join(" ", "XIT", userName);
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("TRUE")) {
+                System.out.println("Goodbye.");
+                return 0;
+            }
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
+            System.out.println("Warning: Packet Timeout.");
+            removeThread(command);
+            return 0;
+        } catch (Exception e) {
+            System.out.println("ERROR");
+        }
+        return 1;
+    }
 
     private static void UDPSend(String sentence) throws Exception {
         // prepare for sending

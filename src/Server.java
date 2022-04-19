@@ -54,15 +54,11 @@ public class Server {
 
         // Socket settle
         serverSocket = new DatagramSocket(serverPort);
+        // Read user info
+        readCredentials();
 
         // Authentication
-        readCredentials();
-        System.out.println("Waiting for clients.");
-        while (true) {
-            if (authentication()) {
-                break;
-            }
-        }
+        authentication();
 
         // Interaction with user
         while (true) {
@@ -106,9 +102,8 @@ public class Server {
                     removeThread(spec, request);
                     break;
                 case "XIT":
-                    int code = exit();
-                    if (code == 0)
-                        return;
+                    exit(spec, request);
+                    authentication();
                     break;
                 default:
                     // show error message
@@ -135,7 +130,17 @@ public class Server {
         }
     }
 
-    private static boolean authentication() throws Exception {
+    private static void authentication() throws Exception {
+        System.out.println("Waiting for clients.");
+        while (true) {
+            if (authentication_validation()) {
+                break;
+            }
+        }
+    }
+
+    private static boolean authentication_validation() throws Exception {
+
         Map response = UDPReceive();
         if (response == null)
             return false;
@@ -167,6 +172,7 @@ public class Server {
             // password authentication
             Map user = (Map) userInfo.get(ans[1]);
             if (((String) user.get("psw")).equals(ans[2])) {
+                user.put("status", "online");
                 UDPSend(request, "TRUE");
                 System.out.println(ans[1] + " successful login.");
                 return true;
@@ -455,9 +461,14 @@ public class Server {
         return;
     }
 
-    private static int exit() {
-        return 0;
-    };
+    private static void exit(String[] command, DatagramPacket request) throws Exception {
+        String userName = command[0];
+        Map user = (Map) userInfo.get(userName);
+        user.replace("status", "offline");
+        UDPSend(request, "TRUE");
+        System.out.println(userName + " exited.");
+        return;
+    }
 
     private static void UDPSend(DatagramPacket request, String sentence) throws Exception {
         // DEBUG: Simulate network delay.
