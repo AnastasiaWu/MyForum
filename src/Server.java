@@ -39,7 +39,8 @@ public class Server {
     static String buffer;
 
     // DEBUG
-    private static final int AVERAGE_DELAY = 1000; // milliseconds
+    // private static final int AVERAGE_DELAY = 1000; // milliseconds
+    // private static final double LOSS_RATE = 0.8;
 
     public static void main(String[] args) throws Exception {
         // Check the input
@@ -239,8 +240,8 @@ public class Server {
 
     private static void UDPSend(DatagramPacket request, String sentence) throws Exception {
         // DEBUG: Simulate network delay.
-        Random random = new Random();
-        Thread.sleep((int) (random.nextDouble() * 2 * AVERAGE_DELAY));
+        // Random random = new Random();
+        // Thread.sleep((int) (random.nextDouble() * 2 * AVERAGE_DELAY));
 
         buffer = sentence;
         InetAddress clientHost = request.getAddress();
@@ -269,6 +270,13 @@ public class Server {
         DatagramPacket request = new DatagramPacket(new byte[1024], 1024);
         // Block until the host receives a UDP packet.
         serverSocket.receive(request);
+
+        // DEBUG: Decide whether to reply, or simulate packet loss.
+        // Random random = new Random();
+        // if (random.nextDouble() < LOSS_RATE) {
+        // System.out.println(" Reply not sent.");
+        // return null;
+        // }
 
         String line = null;
         // Obtain references to the packet's array of bytes.
