@@ -1,11 +1,19 @@
 import java.io.*;
 import java.net.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
+
+import javax.swing.text.html.HTMLDocument.RunElement;
 
 public class Client {
     static DatagramSocket clientSocket;
     static InetAddress IPAddress;
     static int serverPort;
+
+    static String userName;
+
+    static int ACK = 0;
+    static int Seq = 0;
 
     public static void main(String[] args) throws Exception {
         // Check the input
@@ -32,15 +40,20 @@ public class Client {
         while (true) {
             Map commands = showMenu();
             String command;
+            String[] spec;
             if (commands != null) {
                 command = (String) commands.get("command");
+                spec = (String[]) commands.get("value");
             } else {
                 continue;
             }
-            System.out.println(commands);
+            // DEBUG
+            // for (int i = 0; i < spec.length; i++) {
+            // System.out.println(spec[i]);
+            // }
             switch (command) {
                 case "CRT":
-                    createThread();
+                    createThread(spec);
                     break;
                 case "MSG":
                     postMessage();
@@ -83,62 +96,94 @@ public class Client {
     };
 
     private static boolean authentication() throws Exception {
+        if (authentication_name())
+            return authentication_psw();
+        return false;
+    }
+
+    private static boolean authentication_name() throws Exception {
         // print out message and get username
-        String name, psw;
+        String name;
         System.out.print("Enter username: ");
         BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
         name = inFromUser.readLine();
-
-        System.out.print("Enter password: ");
-        inFromUser = new BufferedReader(new InputStreamReader(System.in));
-        psw = inFromUser.readLine();
-        // send user name and get validation
-        int count = 0;
-        while (count < 20) {
-            try {
-                UDPSend(String.join(" ", name, psw));
-                String response = castResponse(UDPReceive());
-                if (response.equals("TRUE")) {
-                    return true;
-                } else if (response.equals("FALSE")) {
-                    System.out.println("ERROR: Incorrect password.\n");
-                    return false;
-                }
-            } catch (Exception e) {
-                // TODO: set error msg here
-                System.out.println("ERROR: Packet Timeout.");
+        try {
+            UDPSend(String.join(" ", "name", name));
+            String response = castResponse(UDPReceive());
+            if (response.equals("TRUE")) {
+                userName = name;
+                return true;
+            } else if (response.equals("FALSE")) {
+                System.out.println("ERROR: Name not matched.\n");
+                return false;
+            } else if (response.equals("ONLINE")) {
+                System.out.println("ERROR: Already logged in.\n");
+                return false;
             }
+        } catch (Exception e) {
+            System.out.println("Warning: Packet Timeout.");
         }
         return false;
-    };
+
+    }
+
+    private static boolean authentication_psw() throws Exception {
+        // print out message and get password
+        String psw;
+        System.out.print("Enter password: ");
+        BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
+        psw = inFromUser.readLine();
+        try {
+            UDPSend(String.join(" ", "psw", userName, psw));
+            String response = castResponse(UDPReceive());
+            if (response.equals("TRUE")) {
+                return true;
+            } else if (response.equals("FALSE")) {
+                System.out.println("ERROR: Incorrect password.\n");
+                return false;
+            }
+        } catch (Exception e) {
+            System.out.println("Warning: Packet Timeout.");
+        }
+        return false;
+    }
 
     private static Map showMenu() throws Exception {
         String command = null;
         Map result = null;
         while (command == null) {
-            System.out.println("Enter one of the following commands: "
+            System.out.print("Enter one of the following commands: "
                     + "CRT, MSG, LST, RDT, EDT, DLT, RMV, UPD, DWN,  XIT: ");
             BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
             command = inFromUser.readLine();
             // create list for command and loop through check if it's a valid command
-            List<String> commandList = Arrays.asList("CRT", "MSG", "LST", "RDT", "EDT", "DLT", "RMV", "UPD", "DWN",
-                    "XIT");
-            for (int i = 0; i < commandList.size(); i++) {
-                String name = commandList.get(i);
-                if (command.contains(name)) {
-                    result = new HashMap<>();
-                    result.put("command", name);
-                    result.put("value", command.split(name));
-                    return result;
-                }
-            }
-            System.out.println("Invalid command.");
+            result = commandParse(command);
+            if (result != null)
+                return result;
+            System.out.println("ERROR: Invalid command.");
         }
         return result;
+
     };
 
-    private static void createThread() {
-    };
+    private static void createThread(String[] command) throws Exception {
+        if (command[0].split(" ").length != 1) {
+            System.out.println("ERRROR: Invalid name.");
+            return;
+        }
+        try {
+            String data = String.join(" ", "CRT", stringArrayToString(command), userName);
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("TRUE")) {
+                System.out.println("Thread " + (String) command[0] + " created.");
+            } else if (response.equals("FALSE")) {
+                System.out.println("ERROR: Thread " + (String) command[0] + " exists.");
+            }
+        } catch (Exception e) {
+            System.out.println("Warning: Packet Timeout.");
+        }
+    }
 
     private static void postMessage() {
     };
@@ -169,14 +214,17 @@ public class Client {
     };
 
     private static void UDPSend(String sentence) throws Exception {
-        DatagramPacket request = new DatagramPacket(new byte[1024], 1024);
         // prepare for sending
         byte[] sendData = new byte[1024];
+        sentence = String.join(" ", Integer.toString(ACK), Integer.toString(Seq),
+                Integer.toString(sentence.length()), sentence);
         sendData = sentence.getBytes();
+
         // write to server, need to create DatagramPAcket with server address and port
         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, serverPort);
         // actual send call
         clientSocket.send(sendPacket);
+        // set timeout
         // clientSocket.setSoTimeout(600);
     };
 
@@ -189,7 +237,16 @@ public class Client {
         clientSocket.receive(receivePacket);
 
         response = new String(receivePacket.getData());
+        // DEBUG
         System.out.println("MSG FROM SERVER:" + response);
+        // parse the packet
+        Map messages = UDPMessageParse(response);
+        int ackRecieve = Integer.parseInt((String) messages.get("ACK"));
+        int seqReceive = Integer.parseInt((String) messages.get("Seq"));
+        int lengthReceive = Integer.parseInt((String) messages.get("Length"));
+        response = (String) messages.get("message");
+        Seq = ackRecieve;
+        ACK = seqReceive + lengthReceive;
         return response;
     };
 
@@ -207,6 +264,51 @@ public class Client {
             } else {
                 break;
             }
+        }
+        return sb.toString();
+    };
+
+    private static Map commandParse(String command) {
+        List<String> commandList = Arrays.asList("CRT", "MSG", "LST", "RDT", "EDT", "DLT", "RMV", "UPD", "DWN",
+                "XIT");
+        Map result = null;
+        for (int i = 0; i < commandList.size(); i++) {
+            String name = commandList.get(i);
+            if (command.contains(name)) {
+                result = new HashMap<>();
+                String[] spec = command.split(name + " ");
+                String[] newSpec = { "" };
+                System.arraycopy(spec, 1, newSpec, 0, spec.length - 1);
+                result.put("command", name);
+                result.put("value", newSpec);
+                return result;
+            }
+        }
+        return result;
+    }
+
+    private static Map UDPMessageParse(String line) {
+        Map result = new HashMap<>();
+        String[] ans = line.split(" ");
+        result.put("ACK", ans[0]);
+        result.put("Seq", ans[1]);
+        result.put("Length", ans[2]);
+        ArrayList message = new ArrayList<>();
+        for (int i = 3; i < ans.length; i++) {
+            message.add(ans[i]);
+        }
+        result.put("message", String.join(" ", message));
+        // DEBUG
+        // System.out.println((String) message.toString());
+        return result;
+    }
+
+    private static String stringArrayToString(String[] input) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < input.length; i++) {
+            sb.append(input[i]);
+            if (i != input.length - 1)
+                sb.append(" ");
         }
         return sb.toString();
     }
