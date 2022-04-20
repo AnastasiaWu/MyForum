@@ -186,8 +186,10 @@ public class Client {
             String response = castResponse(UDPReceive());
             if (response.equals("TRUE")) {
                 System.out.println("Thread " + (String) command[0] + " created.");
+                return;
             } else if (response.equals("FALSE")) {
                 System.out.println("ERROR: Thread " + (String) command[0] + " exists.");
+                return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
@@ -207,8 +209,10 @@ public class Client {
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
                 System.out.println("ERROR: Thread title " + threadName + " does not exist.");
+                return;
             } else if (response.equals("TRUE")) {
                 System.out.println("Message posted to " + threadName + " thread.");
+                return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
@@ -234,12 +238,16 @@ public class Client {
             String response = castResponse(UDPReceive());
             if (response.equals("NOTHREAD")) {
                 System.out.println("ERROR: Invalid thread title.");
+                return;
             } else if (response.equals("NOMESSAGEID")) {
                 System.out.println("ERROR: Invalid message ID.");
+                return;
             } else if (response.equals("NOUSER")) {
                 System.out.println("ERROR: Invalid permission.");
+                return;
             } else if (response.equals("TRUE")) {
                 System.out.println("The message has been deleted.");
+                return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
@@ -265,12 +273,16 @@ public class Client {
             String response = castResponse(UDPReceive());
             if (response.equals("NOTHREAD")) {
                 System.out.println("ERROR: Invalid thread title.");
+                return;
             } else if (response.equals("NOMESSAGEID")) {
                 System.out.println("ERROR: Invalid message ID.");
+                return;
             } else if (response.equals("NOUSER")) {
                 System.out.println("ERROR: Invalid permission.");
+                return;
             } else if (response.equals("TRUE")) {
                 System.out.println("The message has been edited.");
+                return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
@@ -292,12 +304,14 @@ public class Client {
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
                 System.out.println("No threads to list.");
+                return;
             } else {
                 System.out.println("The list of the active thread: ");
                 String[] threadsActive = response.split(",");
                 for (int i = 0; i < threadsActive.length; i++) {
                     System.out.println(threadsActive[i]);
                 }
+                return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
@@ -321,10 +335,13 @@ public class Client {
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
                 System.out.println("ERROR: Thread title does not exist.");
+                return;
             } else if (response.equals("EMPTY")) {
                 System.out.println("Thread " + threadName + " is empty.");
+                return;
             } else {
                 System.out.println(response);
+                return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
@@ -350,18 +367,25 @@ public class Client {
             String response = castResponse(UDPReceive());
             if (response.equals("NOTHREAD")) {
                 System.out.println("ERROR: Thread title " + threadName + " does not exist.");
+                return;
             } else if (response.equals("FILEEXIST")) {
                 System.out.println("File already exist.");
+                return;
             } else {
                 // Transfer the file
                 TCPSend(fileName);
+            }
+            response = castResponse(UDPReceive());
+            if (response.equals("TRUE")) {
                 System.out.println(fileName + " uploaded to " + threadName + " thread.");
+            } else {
+                System.out.println("File uploading fail.");
             }
 
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
             System.out.println("Warning: Packet Timeout.");
-            readThread(command);
+            uploadFile(command);
             return;
         } catch (Exception e) {
             System.out.println("ERROR");
@@ -388,6 +412,8 @@ public class Client {
             } else if (response.equals("TRUE")) {
                 System.out.println("Thread " + threadName + " has been removed.");
             }
+            response = castResponse(UDPReceive());
+
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
             System.out.println("Warning: Packet Timeout.");
@@ -459,13 +485,13 @@ public class Client {
         // prepare for sending
         Socket clientSocketTCP = new Socket("localhost", serverPort);
         // Output to the socket data stream, we use DataOutputStream
-        DataOutputStream outToServer = new DataOutputStream(clientSocketTCP.getOutputStream());
+        OutputStream outToServer = clientSocketTCP.getOutputStream();
         // Read from the binary file, we use FileInputStream
         InputStream inputStream = new FileInputStream(fileName);
         // Write the binary file to socket data stream and send it
         int byteRead = -1;
         while ((byteRead = inputStream.read()) != -1) {
-            outToServer.writeByte(byteRead);
+            outToServer.write(byteRead);
         }
         // Close the file
         inputStream.close();

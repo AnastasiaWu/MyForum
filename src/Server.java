@@ -14,7 +14,7 @@ import java.nio.*;
 //      threadName: {
 //          owner:,
 //          counter:,    
-//          files:[],
+//          files(Map):[fileName:user, test.bin:Anna,...],
 //      },
 // }
 
@@ -450,7 +450,7 @@ public class Server {
         Map thread = (Map) threadInfo.get(threadName);
         Map files = (Map) thread.get("files");
         // File already exist
-        if (files.containsKey(fileName)) {
+        if (files != null && files.containsKey(fileName)) {
             UDPSend(request, "FILEEXIST");
             return;
         }
@@ -458,17 +458,18 @@ public class Server {
         // Prepare the new file name
         String newFileName = threadName.concat("-" + fileName);
         // Receive the new file
-        TCPReceive(newFileName);// DEBUG
+        TCPReceive(newFileName);
+        // DEBUG
         System.out.println("File created.");
-        // Check if uploaded
-        // File file = new File((String) newFileName);
-        // if (file.exists()) {
-        // // Update the database
-        // thread.put("files", files.put(fileName, userName));
-        // // Update in the thread
-        // FileWriter myWriter = new FileWriter(fileName);
-        // myWriter.write(userName + " uploaded " + fileName);
-        // }
+        // Update the database
+        files.put("files", files.put(fileName, userName));
+        // Update in the thread
+        FileWriter myWriter = new FileWriter(threadName);
+        myWriter.write(userName + " uploaded " + fileName);
+        myWriter.close();
+        System.out.println(fileName + " uploaded to " + threadName + " thread");
+        // Send feedback
+        UDPSend(request, "TRUE");
         return;
     }
 
@@ -597,9 +598,13 @@ public class Server {
         InputStream inFromClient = connectionSocket.getInputStream();
         // create the stream to store the input
         OutputStream outputStream = new FileOutputStream(fileName);
-        outputStream.write(inFromClient.read());
+        for (int byteRead = inFromClient.read(); byteRead != -1; byteRead = inFromClient.read()) {
+            outputStream.write(byteRead);
+        }
+
         outputStream.close();
         connectionSocket.close();
+
         return;
     }
 
