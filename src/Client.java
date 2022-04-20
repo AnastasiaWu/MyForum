@@ -15,7 +15,7 @@ public class Client {
     public static void main(String[] args) throws Exception {
         // Check the input
         if (args.length != 1) {
-            System.out.println("Please input the port number.");
+            System.out.println("Please input the port number");
             return;
         }
         // Define socket parameters, address and Port#
@@ -72,7 +72,7 @@ public class Client {
                     uploadFile(spec);
                     break;
                 case "DWN":
-                    downloadFile();
+                    downloadFile(spec);
                     break;
                 case "RMV":
                     removeThread(spec);
@@ -86,7 +86,7 @@ public class Client {
                     break;
                 default:
                     // show error message
-                    System.out.println("ERROR: Invalid command.");
+                    System.out.println("ERROR: Invalid command");
                     break;
             }
         }
@@ -126,7 +126,7 @@ public class Client {
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             authentication_name(name);
             return true;
         } catch (Exception e) {
@@ -148,7 +148,7 @@ public class Client {
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             authentication_psw(psw);
             return true;
         } catch (Exception e) {
@@ -162,14 +162,14 @@ public class Client {
         Map result = null;
         while (command == null) {
             System.out.print("Enter one of the following commands: "
-                    + "CRT, MSG, LST, RDT, EDT, DLT, RMV, UPD, DWN,  XIT: ");
+                    + "CRT, MSG, LST, RDT, EDT, DLT, RMV, UPD, DWN, XIT: ");
             BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
             command = inFromUser.readLine();
             // create list for command and loop through check if it's a valid command
             result = commandParse(command);
             if (result != null)
                 return result;
-            System.out.println("ERROR: Invalid command.");
+            System.out.println("ERROR: Invalid command");
         }
         return result;
 
@@ -177,7 +177,7 @@ public class Client {
 
     private static void createThread(String[] command) throws Exception {
         if (command[0].split(" ").length != 1) {
-            System.out.println("ERRROR: Invalid name.");
+            System.out.println("ERRROR: Invalid name");
             return;
         }
         try {
@@ -185,15 +185,15 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("TRUE")) {
-                System.out.println("Thread " + (String) command[0] + " created.");
+                System.out.println("Thread " + (String) command[0] + " created");
                 return;
             } else if (response.equals("FALSE")) {
-                System.out.println("ERROR: Thread " + (String) command[0] + " exists.");
+                System.out.println("ERROR: Thread " + (String) command[0] + " exists");
                 return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             createThread(command);
             return;
         } catch (Exception e) {
@@ -208,15 +208,15 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
-                System.out.println("ERROR: Thread title " + threadName + " does not exist.");
+                System.out.println("ERROR: Thread title " + threadName + " does not exist");
                 return;
             } else if (response.equals("TRUE")) {
-                System.out.println("Message posted to " + threadName + " thread.");
+                System.out.println("Message posted to " + threadName + " thread");
                 return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             postMessage(command);
             return;
         } catch (Exception e) {
@@ -226,7 +226,7 @@ public class Client {
 
     private static void deleteMessage(String[] command) {
         if (command[0].split(" ").length != 2) {
-            System.out.println("ERROR: Invalid input.");
+            System.out.println("ERROR: Invalid input");
             return;
         }
         try {
@@ -237,21 +237,21 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("NOTHREAD")) {
-                System.out.println("ERROR: Invalid thread title.");
+                System.out.println("ERROR: Invalid thread title");
                 return;
             } else if (response.equals("NOMESSAGEID")) {
-                System.out.println("ERROR: Invalid message ID.");
+                System.out.println("ERROR: Invalid message ID");
                 return;
             } else if (response.equals("NOUSER")) {
-                System.out.println("ERROR: Invalid permission.");
+                System.out.println("ERROR: Invalid permission");
                 return;
             } else if (response.equals("TRUE")) {
-                System.out.println("The message has been deleted.");
+                System.out.println("The message has been deleted");
                 return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             deleteMessage(command);
             return;
         } catch (Exception e) {
@@ -261,7 +261,7 @@ public class Client {
 
     private static void editMessage(String[] command) {
         if (command[0].split(" ").length != 3) {
-            System.out.println("ERROR: Invalid input.");
+            System.out.println("ERROR: Invalid input");
             return;
         }
         try {
@@ -272,21 +272,21 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("NOTHREAD")) {
-                System.out.println("ERROR: Invalid thread title.");
+                System.out.println("ERROR: Invalid thread title");
                 return;
             } else if (response.equals("NOMESSAGEID")) {
-                System.out.println("ERROR: Invalid message ID.");
+                System.out.println("ERROR: Invalid message ID");
                 return;
             } else if (response.equals("NOUSER")) {
-                System.out.println("ERROR: Invalid permission.");
+                System.out.println("ERROR: Invalid permission");
                 return;
             } else if (response.equals("TRUE")) {
-                System.out.println("The message has been edited.");
+                System.out.println("The message has been edited");
                 return;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             editMessage(command);
             return;
         } catch (Exception e) {
@@ -303,7 +303,7 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
-                System.out.println("No threads to list.");
+                System.out.println("No threads to list");
                 return;
             } else {
                 System.out.println("The list of the active thread: ");
@@ -315,7 +315,7 @@ public class Client {
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             listThreads();
             return;
         } catch (Exception e) {
@@ -325,7 +325,7 @@ public class Client {
 
     private static void readThread(String[] command) {
         if (command[0].split(" ").length != 1) {
-            System.out.println("ERROR: Invalid input.");
+            System.out.println("ERROR: Invalid input");
             return;
         }
         String threadName = command[0];
@@ -334,10 +334,10 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
-                System.out.println("ERROR: Thread title does not exist.");
+                System.out.println("ERROR: Thread title does not exist");
                 return;
             } else if (response.equals("EMPTY")) {
-                System.out.println("Thread " + threadName + " is empty.");
+                System.out.println("Thread " + threadName + " is empty");
                 return;
             } else {
                 System.out.println(response);
@@ -345,7 +345,7 @@ public class Client {
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             readThread(command);
             return;
         } catch (Exception e) {
@@ -356,7 +356,7 @@ public class Client {
     private static void uploadFile(String[] command) {
         String[] ans = command[0].split(" ");
         if (ans.length != 2) {
-            System.out.println("ERROR: Invalid input.");
+            System.out.println("ERROR: Invalid input");
             return;
         }
         String threadName = ans[0];
@@ -366,10 +366,10 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("NOTHREAD")) {
-                System.out.println("ERROR: Thread title " + threadName + " does not exist.");
+                System.out.println("ERROR: Thread title " + threadName + " does not exist");
                 return;
             } else if (response.equals("FILEEXIST")) {
-                System.out.println("File already exist.");
+                System.out.println("File already exist");
                 return;
             } else {
                 // Transfer the file
@@ -377,14 +377,14 @@ public class Client {
             }
             response = castResponse(UDPReceive());
             if (response.equals("TRUE")) {
-                System.out.println(fileName + " uploaded to " + threadName + " thread.");
+                System.out.println(fileName + " uploaded to " + threadName + " thread");
             } else {
-                System.out.println("File uploading fail.");
+                System.out.println("File uploading fail");
             }
 
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             uploadFile(command);
             return;
         } catch (Exception e) {
@@ -392,12 +392,45 @@ public class Client {
         }
     }
 
-    private static void downloadFile() {
+    private static void downloadFile(String[] command) {
+        String[] ans = command[0].split(" ");
+        if (ans.length != 2) {
+            System.out.println("ERROR: Invalid input");
+            return;
+        }
+        String threadName = ans[0];
+        String fileName = ans[1];
+        try {
+            String data = String.join(" ", "DWN", userName, stringArrayToString(command));
+            UDPSend(data);
+            String response = castResponse(UDPReceive());
+            if (response.equals("NOTHREAD")) {
+                System.out.println("Thread " + threadName + " does not exist");
+                return;
+            } else if (response.equals("NOFILE")) {
+                System.out.println("File does not exist in Thread " + threadName);
+                return;
+            } else {
+                // Receive the file
+                TCPReceive(fileName);
+            }
+            System.out.println(fileName + " successfully downloaded");
+
+        } catch (SocketTimeoutException e) {
+            // Timeout, resent packet
+            System.out.println("Warning: Packet Timeout");
+            downloadFile(command);
+            return;
+        } catch (Exception e) {
+            // DEBUG
+            System.out.println("ERROR");
+            // e.printStackTrace();
+        }
     }
 
     private static void removeThread(String[] command) {
         if (command[0].split(" ").length != 1) {
-            System.out.println("ERROR: Invalid input.");
+            System.out.println("ERROR: Invalid input");
             return;
         }
         String threadName = command[0];
@@ -406,17 +439,17 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
-                System.out.println("ERROR: Thread cannot be removed.");
+                System.out.println("ERROR: Thread cannot be removed");
             } else if (response.equals("NOPERMISSION")) {
-                System.out.println("ERROR: The thread was created by another user and cannot be removed.");
+                System.out.println("ERROR: The thread was created by another user and cannot be removed");
             } else if (response.equals("TRUE")) {
-                System.out.println("Thread " + threadName + " has been removed.");
+                System.out.println("Thread " + threadName + " has been removed");
             }
             response = castResponse(UDPReceive());
 
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             removeThread(command);
             return;
         } catch (Exception e) {
@@ -430,12 +463,12 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("TRUE")) {
-                System.out.println("Goodbye.");
+                System.out.println("Goodbye");
                 return 0;
             }
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout.");
+            System.out.println("Warning: Packet Timeout");
             removeThread(command);
             return 0;
         } catch (Exception e) {
@@ -469,7 +502,7 @@ public class Client {
 
         response = new String(receivePacket.getData());
         // DEBUG
-        System.out.println("MSG FROM SERVER:" + response);
+        // System.out.println("MSG FROM SERVER:" + response);
         // parse the packet
         Map messages = UDPMessageParse(response);
         int ackRecieve = Integer.parseInt((String) messages.get("ACK"));
@@ -499,8 +532,26 @@ public class Client {
         clientSocketTCP.close();
     }
 
-    // private static void TCPReceive() {
-    // }
+    private static void TCPReceive(String fileName) throws Exception {
+        // Welcome socket
+        ServerSocket welcomeSocketTCP = new ServerSocket(serverPort);
+        // DEBUG
+        // System.out.println("TEST");
+        // accept connection from connection queue
+        Socket connectionSocket = welcomeSocketTCP.accept();
+        // create read stream to get input
+        InputStream inFromClient = connectionSocket.getInputStream();
+        // create the stream to store the input
+        OutputStream outputStream = new FileOutputStream(fileName);
+        for (int byteRead = inFromClient.read(); byteRead != -1; byteRead = inFromClient.read()) {
+            outputStream.write(byteRead);
+        }
+        outputStream.close();
+        connectionSocket.close();
+        welcomeSocketTCP.close();
+
+        return;
+    }
 
     private static String castResponse(String response) {
         StringBuilder sb = new StringBuilder();

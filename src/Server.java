@@ -42,7 +42,7 @@ public class Server {
     public static void main(String[] args) throws Exception {
         // Check the input
         if (args.length != 1) {
-            System.out.println("Please input the port number.");
+            System.out.println("Please input the port number");
             return;
         }
 
@@ -98,7 +98,7 @@ public class Server {
                     uploadFile(spec, request);
                     break;
                 case "DWN":
-                    downloadFile();
+                    downloadFile(spec, request);
                     break;
                 case "RMV":
                     removeThread(spec, request);
@@ -109,7 +109,7 @@ public class Server {
                     break;
                 default:
                     // show error message
-                    System.out.println("Invalid command.");
+                    System.out.println("Invalid command");
                     break;
             }
         }
@@ -128,12 +128,12 @@ public class Server {
             }
 
         } catch (IOException e) {
-            System.out.println("ERROR: credentials.txt does not exist.");
+            System.out.println("ERROR: credentials.txt does not exist");
         }
     }
 
     private static void authentication() throws Exception {
-        System.out.println("Waiting for clients.");
+        System.out.println("Waiting for clients");
         while (true) {
             if (authentication_validation()) {
                 break;
@@ -153,7 +153,7 @@ public class Server {
         // DEBUG
         // System.out.println(ans[0]);
         if (ans[0].equals("name")) {
-            System.out.println("Client authenticating.");
+            System.out.println("Client authenticating");
             // name authentication
             if (userInfo.containsKey(ans[1])) {
                 Map user = (Map) userInfo.get(ans[1]);
@@ -176,7 +176,7 @@ public class Server {
             if (((String) user.get("psw")).equals(ans[2])) {
                 user.put("status", "online");
                 UDPSend(request, "TRUE");
-                System.out.println(ans[1] + " successful login.");
+                System.out.println(ans[1] + " successful login");
                 return true;
             }
         }
@@ -192,7 +192,7 @@ public class Server {
         // Check if a thread with this title exists - yesError to user
         if (threadInfo.containsKey(fileName)) {
             UDPSend(request, "FALSE");
-            System.out.println("Thread " + (String) fileName + " exists.");
+            System.out.println("Thread " + (String) fileName + " exists");
             return;
         }
 
@@ -218,7 +218,7 @@ public class Server {
         info.put("files", files);
         threadInfo.put(fileName, info);
         UDPSend(request, "TRUE");
-        System.out.println("Thread " + (String) fileName + " created.");
+        System.out.println("Thread " + (String) fileName + " created");
     }
 
     private static void postMessage(String[] command, DatagramPacket request) throws Exception {
@@ -233,7 +233,7 @@ public class Server {
         // Thread name does not exist
         if (!threadInfo.containsKey(threadName)) {
             UDPSend(request, "FALSE");
-            System.out.println("Thread " + (String) threadName + " does not exist.");
+            System.out.println("Thread " + (String) threadName + " does not exist");
             return;
         }
         Map thread = (Map) threadInfo.get(threadName);
@@ -263,7 +263,7 @@ public class Server {
         // Thread name does not exist
         if (!threadInfo.containsKey(threadName)) {
             UDPSend(request, "NOTHREAD");
-            System.out.println("Thread " + (String) threadName + " does not exist.");
+            System.out.println("Thread " + (String) threadName + " does not exist");
             return;
         }
 
@@ -298,18 +298,18 @@ public class Server {
         if (!exist) {
             // No message ID
             UDPSend(request, "NOMESSAGEID");
-            System.out.println("Message does not exist.");
+            System.out.println("Message does not exist");
             return;
         } else if (!right) {
             // No right
             UDPSend(request, "NOUSER");
-            System.out.println("Message cannot be deleted.");
+            System.out.println("Message cannot be deleted");
             return;
         } else if (rename) {
             UDPSend(request, "TRUE");
-            System.out.println("Message has been deleted.");
+            System.out.println("Message has been deleted");
         } else {
-            System.out.println("File rename failed.");
+            System.out.println("File rename failed");
         }
     }
 
@@ -328,7 +328,7 @@ public class Server {
         // Thread name does not exist
         if (!threadInfo.containsKey(threadName)) {
             UDPSend(request, "NOTHREAD");
-            System.out.println("Thread " + (String) threadName + " does not exist.");
+            System.out.println("Thread " + (String) threadName + " does not exist");
             return;
         }
 
@@ -362,18 +362,18 @@ public class Server {
         if (!exist) {
             // No message ID
             UDPSend(request, "NOMESSAGEID");
-            System.out.println("Message does not exist.");
+            System.out.println("Message does not exist");
             return;
         } else if (!right) {
             // No right
             UDPSend(request, "NOUSER");
-            System.out.println("Message cannot be deleted.");
+            System.out.println("Message cannot be deleted");
             return;
         } else if (rename) {
             UDPSend(request, "TRUE");
-            System.out.println("Message has been deleted.");
+            System.out.println("Message has been deleted");
         } else {
-            System.out.println("File rename failed.");
+            System.out.println("File rename failed");
         }
     };
 
@@ -406,7 +406,7 @@ public class Server {
         // Thread name does not exist
         if (!threadInfo.containsKey(threadName)) {
             UDPSend(request, "FALSE");
-            System.out.println("Incorrect thread specified.");
+            System.out.println("Incorrect thread specified");
             return;
         }
         Map thread = (Map) threadInfo.get(threadName);
@@ -430,6 +430,7 @@ public class Server {
         UDPSend(request, sb.toString());
         // DEBUG
         // System.out.println(sb.toString());
+        System.out.println("Thread " + threadName + " read");
         return;
     }
 
@@ -446,7 +447,7 @@ public class Server {
         // Thread name does not exist
         if (!threadInfo.containsKey(threadName)) {
             UDPSend(request, "NOTHREAD");
-            System.out.println("Thread " + (String) threadName + " does not exist.");
+            System.out.println("Thread " + (String) threadName + " does not exist");
             return;
         }
         Map thread = (Map) threadInfo.get(threadName);
@@ -462,21 +463,50 @@ public class Server {
         // Receive the new file
         TCPReceive(newFileName);
         // DEBUG
-        System.out.println("File created.");
+        // System.out.println("File created");
         // Update the database
         files.put("files", files.put(fileName, userName));
         // Update in the thread
-        FileWriter myWriter = new FileWriter(threadName);
-        myWriter.write(userName + " uploaded " + fileName);
+        FileWriter myWriter = new FileWriter(threadName, true);
+        myWriter.write(userName + " uploaded " + fileName + "\n");
         myWriter.close();
-        System.out.println(fileName + " uploaded to " + threadName + " thread");
         // Send feedback
         UDPSend(request, "TRUE");
+        System.out.println(userName + " uploaded file " + fileName + " to " + threadName + " thread");
         return;
     }
 
-    private static void downloadFile() {
-    };
+    private static void downloadFile(String[] command, DatagramPacket request) throws Exception {
+        String[] spec = command[0].split(" ");
+        String userName = spec[0];
+        String threadName = spec[1];
+        String fileName = spec[2];
+
+        System.out.println(userName + " issued DWN command");
+
+        // Thread name does not exist
+        if (!threadInfo.containsKey(threadName)) {
+            UDPSend(request, "NOTHREAD");
+            System.out.println("Incorrect thread specified");
+            return;
+        }
+        Map thread = (Map) threadInfo.get(threadName);
+        Map files = (Map) thread.get("files");
+        // File already exist
+        if (files == null || !files.containsKey(fileName)) {
+            UDPSend(request, "NOFILE");
+            System.out.println(fileName + " does not exist in Thread " + threadName);
+            return;
+        }
+        UDPSend(request, "TRUE");
+        // Upload the file
+        String newFileName = String.join("-", threadName, fileName);
+        TCPSend(newFileName);
+        // DEBUG
+        // System.out.println("File created");
+        System.out.println(fileName + " downloaded from Thread " + threadName);
+        return;
+    }
 
     private static void removeThread(String[] command, DatagramPacket request) throws Exception {
         String[] spec = command[0].split(" ");
@@ -490,19 +520,19 @@ public class Server {
         // Thread name does not exist
         if (!threadInfo.containsKey(threadName)) {
             UDPSend(request, "FALSE");
-            System.out.println("Thread " + (String) threadName + " does not exist.");
+            System.out.println("Thread " + (String) threadName + " does not exist");
             return;
         }
         // User access right fail
         if (!((String) ((Map) threadInfo.get(threadName)).get("owner")).equals(userName)) {
             UDPSend(request, "NOPERMISSION");
-            System.out.println("User has no permission to remove the thread.");
+            System.out.println("User has no permission to remove the thread");
             return;
         }
         File file = new File(threadName);
         file.delete();
         // TODO: remove the upload file
-        System.out.println("Thread " + threadName + " has been removed.");
+        System.out.println("Thread " + threadName + " has been removed");
         return;
     }
 
@@ -511,7 +541,7 @@ public class Server {
         Map user = (Map) userInfo.get(userName);
         user.replace("status", "offline");
         UDPSend(request, "TRUE");
-        System.out.println(userName + " exited.");
+        System.out.println(userName + " exited");
         return;
     }
 
@@ -551,7 +581,7 @@ public class Server {
         // DEBUG: Decide whether to reply, or simulate packet loss.
         // Random random = new Random();
         // if (random.nextDouble() < LOSS_RATE) {
-        // System.out.println(" Reply not sent.");
+        // System.out.println(" Reply not sent");
         // return null;
         // }
 
@@ -574,7 +604,7 @@ public class Server {
         // check if the packet is duplicate
         if (ACK == seqReceive + lengthReceive) {
             // This is a duplicate packet, drop it, resent packet
-            System.out.println("Warning: DUP packet.");
+            System.out.println("Warning: DUP packet");
             UDPSend(request);
             return null;
         } else {
@@ -588,8 +618,23 @@ public class Server {
         return response;
     };
 
-    // private static void TCPSend() throws Exception {
-    // }
+    private static void TCPSend(String fileName) throws Exception {
+        // prepare for sending
+        Socket clientSocketTCP = new Socket("localhost", serverPort);
+        // Output to the socket data stream, we use DataOutputStream
+        OutputStream outToServer = clientSocketTCP.getOutputStream();
+        // Read from the binary file, we use FileInputStream
+        InputStream inputStream = new FileInputStream(fileName);
+        // Write the binary file to socket data stream and send it
+        int byteRead = -1;
+        while ((byteRead = inputStream.read()) != -1) {
+            outToServer.write(byteRead);
+        }
+        // Close the file
+        inputStream.close();
+        // close the server
+        clientSocketTCP.close();
+    }
 
     private static void TCPReceive(String fileName) throws Exception {
         // Welcome socket
@@ -606,6 +651,7 @@ public class Server {
 
         outputStream.close();
         connectionSocket.close();
+        welcomeSocketTCP.close();
 
         return;
     }
