@@ -190,16 +190,19 @@ public class Server {
         String userName = spec[1];
         System.out.println(userName + " issued CRT command");
         // Check if a thread with this title exists - yesError to user
-        File file = new File((String) fileName);
-        if (file.exists()) {
+        if (threadInfo.containsKey(fileName)) {
             UDPSend(request, "FALSE");
             System.out.println("Thread " + (String) fileName + " exists.");
             return;
         }
+
         // create thread
         // DEBUG
         // System.out.println(fileName);
         // System.out.println(userName);
+        File file = new File((String) fileName);
+        if (file.exists())
+            file.delete();
         file.createNewFile();
         file.setExecutable(true);
         file.setWritable(true);
@@ -403,7 +406,7 @@ public class Server {
         // Thread name does not exist
         if (!threadInfo.containsKey(threadName)) {
             UDPSend(request, "FALSE");
-            System.out.println("Thread " + (String) threadName + " does not exist.");
+            System.out.println("Incorrect thread specified.");
             return;
         }
         Map thread = (Map) threadInfo.get(threadName);
@@ -427,7 +430,6 @@ public class Server {
         UDPSend(request, sb.toString());
         // DEBUG
         // System.out.println(sb.toString());
-        // TODO: uploadFile();
         return;
     }
 
