@@ -35,6 +35,8 @@ public class Server {
 
     static String buffer;
 
+    static boolean newUserFlag = false;
+    static boolean creatingUser = true;
     // DEBUG
     // private static final int AVERAGE_DELAY = 1000; // milliseconds
     // private static final double LOSS_RATE = 0.8;
@@ -128,7 +130,7 @@ public class Server {
             }
 
         } catch (IOException e) {
-            System.out.println("ERROR: credentials.txt does not exist");
+            System.out.println("credentials.txt does not exist");
         }
     }
 
@@ -153,8 +155,11 @@ public class Server {
         // DEBUG
         // System.out.println(ans[0]);
         if (ans[0].equals("name")) {
-            System.out.println("Client authenticating");
             // name authentication
+            if (!newUserFlag) {
+                System.out.println("Client authenticating");
+                newUserFlag = true;
+            }
             if (userInfo.containsKey(ans[1])) {
                 Map user = (Map) userInfo.get(ans[1]);
                 // DEBUG
@@ -167,20 +172,43 @@ public class Server {
                     return false;
                 }
             } else {
-                UDPSend(request, "FALSE");
+                UDPSend(request, "NEWUSER");
+                System.out.println("New user");
+                creatingUser = true;
                 return false;
             }
         } else if (ans[0].equals("psw")) {
+            if (creatingUser) {
+                // creating user
+                // update the database
+                Map newUser = new HashMap<>();
+                newUser.put("psw", ans[2]);
+                newUser.put("status", "online");
+                userInfo.put(ans[1], newUser);
+                // update the credentials.txt
+                FileWriter myWriter = new FileWriter("credentials.txt", true);
+                myWriter.write(ans[1] + " " + ans[2] + "\n");
+                myWriter.close();
+                // Send feedback
+                UDPSend(request, "TRUE");
+                System.out.println(ans[1] + " successfully logged in");
+                newUserFlag = false;
+                creatingUser = false;
+                return true;
+            }
             // password authentication
             Map user = (Map) userInfo.get(ans[1]);
             if (((String) user.get("psw")).equals(ans[2])) {
                 user.put("status", "online");
                 UDPSend(request, "TRUE");
-                System.out.println(ans[1] + " successful login");
+                System.out.println(ans[1] + " successfully logged in");
+                newUserFlag = false;
+                creatingUser = false;
                 return true;
             }
+            UDPSend(request, "FALSE");
+            System.out.println("Incorrect password");
         }
-        UDPSend(request, "FALSE");
         return false;
     }
 
@@ -247,7 +275,7 @@ public class Server {
         // DEBUG
         // System.out.println((int) thread.get("counter"));
         UDPSend(request, "TRUE");
-        System.out.println("Message posted to " + threadName + " thread");
+        System.out.println(userName + " posted to " + threadName + " thread");
     }
 
     private static void deleteMessage(String[] command, DatagramPacket request) throws Exception {
@@ -318,7 +346,7 @@ public class Server {
         String userName = spec[0];
         String threadName = spec[1];
         String messageID = spec[2];
-        String message = spec[3];
+        String message = stringArrayToString(spec, 3, spec.length - 1);
         // DEBUG
         // System.out.println(threadName + " " + userName + " " + messageID + " " +
         // message);
@@ -367,11 +395,11 @@ public class Server {
         } else if (!right) {
             // No right
             UDPSend(request, "NOUSER");
-            System.out.println("Message cannot be deleted");
+            System.out.println("Message cannot be edited");
             return;
         } else if (rename) {
             UDPSend(request, "TRUE");
-            System.out.println("Message has been deleted");
+            System.out.println("Message has been edited");
         } else {
             System.out.println("File rename failed");
         }
@@ -413,6 +441,7 @@ public class Server {
         // Thread empty
         if ((int) thread.get("counter") == 0) {
             UDPSend(request, "EMPTY");
+            System.out.println("Thread " + threadName + " read");
             return;
         }
         StringBuilder sb = new StringBuilder();
@@ -465,7 +494,7 @@ public class Server {
         // DEBUG
         // System.out.println("File created");
         // Update the database
-        files.put("files", files.put(fileName, userName));
+        files.put("files", files.put(fileName, newFileName));
         // Update in the thread
         FileWriter myWriter = new FileWriter(threadName, true);
         myWriter.write(userName + " uploaded " + fileName + "\n");
@@ -500,7 +529,7 @@ public class Server {
         }
         UDPSend(request, "TRUE");
         // Upload the file
-        String newFileName = String.join("-", threadName, fileName);
+        String newFileName = (String) files.get(fileName);
         TCPSend(newFileName);
         // DEBUG
         // System.out.println("File created");
@@ -513,7 +542,7 @@ public class Server {
         String userName = spec[0];
         String threadName = spec[1];
         // DEBUG
-        System.out.println(threadName + " " + userName);
+        // System.out.println(threadName + " " + userName);
 
         System.out.println(userName + " issued RMV command");
 
@@ -526,13 +555,33 @@ public class Server {
         // User access right fail
         if (!((String) ((Map) threadInfo.get(threadName)).get("owner")).equals(userName)) {
             UDPSend(request, "NOPERMISSION");
-            System.out.println("User has no permission to remove the thread");
+            System.out.println("Thread 3331 cannot be removed");
             return;
         }
+        // Delete physical file
         File file = new File(threadName);
         file.delete();
-        // TODO: remove the upload file
-        System.out.println("Thread " + threadName + " has been removed");
+
+        // Remove the uploaded files
+        Map thread = (Map) threadInfo.get(threadName);
+        Map files = (Map) thread.get("files");
+
+        if (files != null) {
+            // Iterate through the list and remove the file
+            Set<String> fileNames = files.keySet();
+            Iterator<String> iter = fileNames.iterator();
+            while (iter.hasNext()) {
+                String fileName = iter.next();
+                String newFileName = (String) files.get(fileName);
+                File tempFile = new File(newFileName);
+                tempFile.delete();
+            }
+        }
+        // Clean the threadInfo
+        threadInfo.remove(threadName);
+        // Send feedback
+        System.out.println("Thread " + threadName + " removed");
+        UDPSend(request, "TRUE");
         return;
     }
 
@@ -709,16 +758,6 @@ public class Server {
         // }
         // System.out.println(sb.toString());
         return result;
-    }
-
-    private static String stringArrayToString(String[] input) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < input.length; i++) {
-            sb.append(input[i]);
-            if (i != input.length - 1)
-                sb.append(" ");
-        }
-        return sb.toString();
     }
 
     private static String stringArrayToString(String[] input, int start, int end) {

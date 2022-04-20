@@ -11,6 +11,7 @@ public class Client {
 
     static int ACK = 0;
     static int Seq = 0;
+    static boolean creatingNewUser = false;
 
     public static void main(String[] args) throws Exception {
         // Check the input
@@ -25,7 +26,7 @@ public class Client {
         // Socket settle
         // create socket which connects to server
         clientSocket = new DatagramSocket();
-        clientSocket.setSoTimeout(1000);
+        clientSocket.setSoTimeout(2500);
 
         // Authentication
         while (true) {
@@ -63,7 +64,7 @@ public class Client {
                     editMessage(spec);
                     break;
                 case "LST":
-                    listThreads();
+                    listThreads(spec);
                     break;
                 case "RDT":
                     readThread(spec);
@@ -86,7 +87,7 @@ public class Client {
                     break;
                 default:
                     // show error message
-                    System.out.println("ERROR: Invalid command");
+                    System.out.println("Invalid command");
                     break;
             }
         }
@@ -102,7 +103,11 @@ public class Client {
         if (authentication_name(name)) {
             // print out message and get password
             String psw;
-            System.out.print("Enter password: ");
+            if (creatingNewUser) {
+                System.out.print("New user, enter password: ");
+            } else {
+                System.out.print("Enter password: ");
+            }
             inFromUser = new BufferedReader(new InputStreamReader(System.in));
             psw = inFromUser.readLine();
             return authentication_psw(psw);
@@ -117,11 +122,12 @@ public class Client {
             if (response.equals("TRUE")) {
                 userName = name;
                 return true;
-            } else if (response.equals("FALSE")) {
-                System.out.println("ERROR: Name not matched.\n");
-                return false;
+            } else if (response.equals("NEWUSER")) {
+                creatingNewUser = true;
+                userName = name;
+                return true;
             } else if (response.equals("ONLINE")) {
-                System.out.println("ERROR: Already logged in.\n");
+                System.out.println(userName + " has already logged in");
                 return false;
             }
         } catch (SocketTimeoutException e) {
@@ -141,9 +147,10 @@ public class Client {
             UDPSend(String.join(" ", "psw", userName, psw));
             String response = castResponse(UDPReceive());
             if (response.equals("TRUE")) {
+                System.out.println("Welcome to the forum");
                 return true;
             } else if (response.equals("FALSE")) {
-                System.out.println("ERROR: Incorrect password.\n");
+                System.out.println("Invalid password");
                 return false;
             }
         } catch (SocketTimeoutException e) {
@@ -169,15 +176,15 @@ public class Client {
             result = commandParse(command);
             if (result != null)
                 return result;
-            System.out.println("ERROR: Invalid command");
+            System.out.println("Invalid command");
         }
         return result;
 
     };
 
     private static void createThread(String[] command) throws Exception {
-        if (command[0].split(" ").length != 1) {
-            System.out.println("ERRROR: Invalid name");
+        if (command == null || command[0].split(" ").length != 1) {
+            System.out.println("Incorrect syntax for CRT");
             return;
         }
         try {
@@ -188,7 +195,7 @@ public class Client {
                 System.out.println("Thread " + (String) command[0] + " created");
                 return;
             } else if (response.equals("FALSE")) {
-                System.out.println("ERROR: Thread " + (String) command[0] + " exists");
+                System.out.println("Thread " + (String) command[0] + " exists");
                 return;
             }
         } catch (SocketTimeoutException e) {
@@ -202,13 +209,17 @@ public class Client {
     }
 
     private static void postMessage(String[] command) {
+        if (command == null || command[0].split(" ").length < 2) {
+            System.out.println("Incorrect syntax for PST");
+            return;
+        }
         String threadName = command[0].split(" ")[0];
         try {
             String data = String.join(" ", "MSG", userName, stringArrayToString(command));
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
-                System.out.println("ERROR: Thread title " + threadName + " does not exist");
+                System.out.println("Thread title " + threadName + " does not exist");
                 return;
             } else if (response.equals("TRUE")) {
                 System.out.println("Message posted to " + threadName + " thread");
@@ -225,8 +236,8 @@ public class Client {
     }
 
     private static void deleteMessage(String[] command) {
-        if (command[0].split(" ").length != 2) {
-            System.out.println("ERROR: Invalid input");
+        if (command == null || command[0].split(" ").length != 2) {
+            System.out.println("Incorrect syntax for DLT");
             return;
         }
         try {
@@ -237,13 +248,13 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("NOTHREAD")) {
-                System.out.println("ERROR: Invalid thread title");
+                System.out.println("Invalid thread title");
                 return;
             } else if (response.equals("NOMESSAGEID")) {
-                System.out.println("ERROR: Invalid message ID");
+                System.out.println("Invalid message ID");
                 return;
             } else if (response.equals("NOUSER")) {
-                System.out.println("ERROR: Invalid permission");
+                System.out.println("The message belongs to another user and cannot be deleted");
                 return;
             } else if (response.equals("TRUE")) {
                 System.out.println("The message has been deleted");
@@ -260,25 +271,26 @@ public class Client {
     }
 
     private static void editMessage(String[] command) {
-        if (command[0].split(" ").length != 3) {
-            System.out.println("ERROR: Invalid input");
+        if (command == null || command[0].split(" ").length < 3) {
+            System.out.println("Incorrect syntax for EDT");
             return;
         }
         try {
             // DEBUG
             // for (int i = 0; i < command.length; i++)
             // System.out.println(command[i]);
+            // System.out.println(stringArrayToString(command));
             String data = String.join(" ", "EDT", userName, stringArrayToString(command));
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("NOTHREAD")) {
-                System.out.println("ERROR: Invalid thread title");
+                System.out.println("Invalid thread title");
                 return;
             } else if (response.equals("NOMESSAGEID")) {
-                System.out.println("ERROR: Invalid message ID");
+                System.out.println("Invalid message ID");
                 return;
             } else if (response.equals("NOUSER")) {
-                System.out.println("ERROR: Invalid permission");
+                System.out.println("The message belongs to another user and cannot be edited");
                 return;
             } else if (response.equals("TRUE")) {
                 System.out.println("The message has been edited");
@@ -294,7 +306,13 @@ public class Client {
         }
     }
 
-    private static void listThreads() {
+    private static void listThreads(String[] command) {
+        if (command != null) {
+            System.out.println("Incorrect syntax for LST");
+            return;
+        }
+        // DEBUG
+        // System.out.println("LST: " + command[0]);
         try {
             // DEBUG
             // for (int i = 0; i < command.length; i++)
@@ -316,7 +334,7 @@ public class Client {
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
             System.out.println("Warning: Packet Timeout");
-            listThreads();
+            listThreads(command);
             return;
         } catch (Exception e) {
             System.out.println("ERROR");
@@ -324,17 +342,19 @@ public class Client {
     }
 
     private static void readThread(String[] command) {
-        if (command[0].split(" ").length != 1) {
-            System.out.println("ERROR: Invalid input");
+        if (command == null || command[0].split(" ").length != 1) {
+            System.out.println("Incorrect syntax for RDT");
             return;
         }
+        // DEBUG
+        // System.out.println(command[0].length());
         String threadName = command[0];
         try {
             String data = String.join(" ", "RDT", userName, stringArrayToString(command));
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
-                System.out.println("ERROR: Thread title does not exist");
+                System.out.println("Thread " + threadName + " does not exist");
                 return;
             } else if (response.equals("EMPTY")) {
                 System.out.println("Thread " + threadName + " is empty");
@@ -354,11 +374,11 @@ public class Client {
     }
 
     private static void uploadFile(String[] command) {
-        String[] ans = command[0].split(" ");
-        if (ans.length != 2) {
-            System.out.println("ERROR: Invalid input");
+        if (command == null || command[0].split(" ").length != 2) {
+            System.out.println("Incorrect syntax for UPD");
             return;
         }
+        String[] ans = command[0].split(" ");
         String threadName = ans[0];
         String fileName = ans[1];
         try {
@@ -366,7 +386,7 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("NOTHREAD")) {
-                System.out.println("ERROR: Thread title " + threadName + " does not exist");
+                System.out.println("Thread title " + threadName + " does not exist");
                 return;
             } else if (response.equals("FILEEXIST")) {
                 System.out.println("File already exist");
@@ -393,11 +413,11 @@ public class Client {
     }
 
     private static void downloadFile(String[] command) {
-        String[] ans = command[0].split(" ");
-        if (ans.length != 2) {
-            System.out.println("ERROR: Invalid input");
+        if (command == null || command[0].split(" ").length != 2) {
+            System.out.println("Incorrect syntax for DWN");
             return;
         }
+        String[] ans = command[0].split(" ");
         String threadName = ans[0];
         String fileName = ans[1];
         try {
@@ -429,8 +449,8 @@ public class Client {
     }
 
     private static void removeThread(String[] command) {
-        if (command[0].split(" ").length != 1) {
-            System.out.println("ERROR: Invalid input");
+        if (command == null || command[0].split(" ").length != 1) {
+            System.out.println("Incorrect syntax for RMV");
             return;
         }
         String threadName = command[0];
@@ -439,14 +459,15 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("FALSE")) {
-                System.out.println("ERROR: Thread cannot be removed");
+                System.out.println("Thread cannot be removed");
+                return;
             } else if (response.equals("NOPERMISSION")) {
-                System.out.println("ERROR: The thread was created by another user and cannot be removed");
+                System.out.println("The thread was created by another user and cannot be removed");
+                return;
             } else if (response.equals("TRUE")) {
-                System.out.println("Thread " + threadName + " has been removed");
+                System.out.println("The thread " + threadName + " has been removed");
+                return;
             }
-            response = castResponse(UDPReceive());
-
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
             System.out.println("Warning: Packet Timeout");
@@ -458,6 +479,10 @@ public class Client {
     }
 
     private static int exit(String[] command) {
+        if (command != null) {
+            System.out.println("Incorrect syntax for XIT");
+            return 1;
+        }
         try {
             String data = String.join(" ", "XIT", userName);
             UDPSend(data);
@@ -576,8 +601,13 @@ public class Client {
                 String[] spec = command.split(name + " ");
                 String[] newSpec = { "" };
                 System.arraycopy(spec, 1, newSpec, 0, spec.length - 1);
+                if (newSpec[0] == "")
+                    newSpec = null;
                 result.put("command", name);
                 result.put("value", newSpec);
+                // DEBUG
+                // System.out.println(newSpec.length);
+                // System.out.println(newSpec[0].length());
                 return result;
             }
         }
