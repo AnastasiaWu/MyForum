@@ -7,6 +7,7 @@ import java.net.*;
 //      status: online,
 //   },
 // }
+import java.nio.file.attribute.UserPrincipal;
 
 // threadInfo {
 //      threadName: {
@@ -38,6 +39,72 @@ public class Server {
     // private static final int AVERAGE_DELAY = 1000; // milliseconds
     // private static final double LOSS_RATE = 0.8;
 
+    private static class ClientThread extends Thread {
+        private final Socket clientSocket;
+        private boolean clientAlive = false;
+        private String command = null;
+        private String fileName = null;
+
+        ClientThread(Socket clientSocket) {
+            this.clientSocket = clientSocket;
+        }
+
+        public void setTCPSendTrue(String fileName) {
+            this.command = "TCPSend";
+            this.fileName = fileName;
+        }
+
+        public void setTCPReceiveTrue(String fileName) {
+            command = "TCPReceive";
+            this.fileName = fileName;
+        }
+
+        public void clearSetting() {
+            this.command = null;
+            this.fileName = null;
+        }
+
+        @Override
+        public void run() {
+            super.run();
+            // DEBUG
+            // String clientAddress = clientSocket.getInetAddress().getHostAddress();
+            // int clientPort = clientSocket.getPort();
+            // String clientID = "(" + clientAddress + ", " + clientPort + ")";
+            // System.out.println("===== New connection created for user - " + clientID);
+            try {
+                if (this.command.equals("TCPSend")) {
+                    // Output to the socket data stream, we use DataOutputStream
+                    OutputStream outToServer = clientSocket.getOutputStream();
+                    // Read from the binary file, we use FileInputStream
+                    InputStream inputStream = new FileInputStream(fileName);
+                    // Write the binary file to socket data stream and send it
+                    int byteRead = -1;
+                    while ((byteRead = inputStream.read()) != -1) {
+                        outToServer.write(byteRead);
+                    }
+                    // Close the file
+                    inputStream.close();
+                    // close the server
+                    clientSocket.close();
+                } else if (this.command.equals("TCPReceive")) {
+                    // create read stream to get input
+                    InputStream inFromClient = clientSocket.getInputStream();
+                    // create the stream to store the input
+                    OutputStream outputStream = new FileOutputStream(fileName);
+                    for (int byteRead = inFromClient.read(); byteRead != -1; byteRead = inFromClient.read()) {
+                        outputStream.write(byteRead);
+                    }
+                    outputStream.close();
+
+                    clientSocket.close();
+                }
+            } catch (Exception e) {
+            }
+        }
+
+    }
+
     public static void main(String[] args) throws Exception {
         // Check the input
         if (args.length != 1) {
@@ -48,11 +115,12 @@ public class Server {
         // Define socket parameters, address and Port#
         serverAddress = InetAddress.getByName("localhost");
         serverPort = Integer.parseInt(args[0]);
-
         // Socket settle
         serverSocket = new DatagramSocket(serverPort);
+
         // Read user info
         readCredentials();
+
         // Interaction with user
         while (true) {
             if (userOnlineCount() == 0 && !authenticating) {
@@ -375,7 +443,8 @@ public class Server {
                 // Check user right
                 if (currentLine.startsWith(messageID + " " + userName)) {
                     right = true;
-                    writer.write(messageID + " " + userName + ": " + message + System.getProperty("line.separator"));
+                    writer.write(
+                            messageID + " " + userName + ": " + message + System.getProperty("line.separator"));
                     continue;
                 }
             }
@@ -677,19 +746,10 @@ public class Server {
     private static void TCPSend(String fileName) throws Exception {
         // prepare for sending
         Socket clientSocketTCP = new Socket("localhost", serverPort);
-        // Output to the socket data stream, we use DataOutputStream
-        OutputStream outToServer = clientSocketTCP.getOutputStream();
-        // Read from the binary file, we use FileInputStream
-        InputStream inputStream = new FileInputStream(fileName);
-        // Write the binary file to socket data stream and send it
-        int byteRead = -1;
-        while ((byteRead = inputStream.read()) != -1) {
-            outToServer.write(byteRead);
-        }
-        // Close the file
-        inputStream.close();
-        // close the server
-        clientSocketTCP.close();
+        ClientThread clientSocket = new ClientThread(clientSocketTCP);
+        clientSocket.setTCPSendTrue(fileName);
+        clientSocket.run();
+
     }
 
     private static void TCPReceive(String fileName) throws Exception {
@@ -697,18 +757,10 @@ public class Server {
         ServerSocket welcomeSocketTCP = new ServerSocket(serverPort);
         // accept connection from connection queue
         Socket connectionSocket = welcomeSocketTCP.accept();
-        // create read stream to get input
-        InputStream inFromClient = connectionSocket.getInputStream();
-        // create the stream to store the input
-        OutputStream outputStream = new FileOutputStream(fileName);
-        for (int byteRead = inFromClient.read(); byteRead != -1; byteRead = inFromClient.read()) {
-            outputStream.write(byteRead);
-        }
-
-        outputStream.close();
-        connectionSocket.close();
+        ClientThread clientSocket = new ClientThread(connectionSocket);
+        clientSocket.setTCPReceiveTrue(fileName);
+        clientSocket.run();
         welcomeSocketTCP.close();
-
         return;
     }
 
@@ -728,7 +780,8 @@ public class Server {
 
     // split the command sign and the rest => ['CRT', '3331 Network is awesome']
     private static Map commandParse(String command) {
-        List<String> commandList = Arrays.asList("AUTH", "CRT", "MSG", "LST", "RDT", "EDT", "DLT", "RMV", "UPD", "DWN",
+        List<String> commandList = Arrays.asList("AUTH", "CRT", "MSG", "LST", "RDT", "EDT", "DLT", "RMV", "UPD",
+                "DWN",
                 "XIT");
         Map result = null;
         for (int i = 0; i < commandList.size(); i++) {
