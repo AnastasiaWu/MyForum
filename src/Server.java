@@ -7,7 +7,6 @@ import java.net.*;
 //      status: online,
 //   },
 // }
-import java.nio.file.attribute.UserPrincipal;
 
 // threadInfo {
 //      threadName: {
@@ -41,7 +40,6 @@ public class Server {
 
     private static class ClientThread extends Thread {
         private final Socket clientSocket;
-        private boolean clientAlive = false;
         private String command = null;
         private String fileName = null;
 
@@ -68,10 +66,10 @@ public class Server {
         public void run() {
             super.run();
             // DEBUG
-            // String clientAddress = clientSocket.getInetAddress().getHostAddress();
-            // int clientPort = clientSocket.getPort();
-            // String clientID = "(" + clientAddress + ", " + clientPort + ")";
-            // System.out.println("===== New connection created for user - " + clientID);
+            String clientAddress = clientSocket.getInetAddress().getHostAddress();
+            int clientPort = clientSocket.getPort();
+            String clientID = "(" + clientAddress + ", " + clientPort + ")";
+            System.out.println("===== New connection created for user - " + clientID);
             try {
                 if (this.command.equals("TCPSend")) {
                     // Output to the socket data stream, we use DataOutputStream
@@ -87,6 +85,7 @@ public class Server {
                     inputStream.close();
                     // close the server
                     clientSocket.close();
+                    clearSetting();
                 } else if (this.command.equals("TCPReceive")) {
                     // create read stream to get input
                     InputStream inFromClient = clientSocket.getInputStream();
@@ -95,9 +94,11 @@ public class Server {
                     for (int byteRead = inFromClient.read(); byteRead != -1; byteRead = inFromClient.read()) {
                         outputStream.write(byteRead);
                     }
+                    // Close the file
                     outputStream.close();
-
+                    // close the server
                     clientSocket.close();
+                    clearSetting();
                 }
             } catch (Exception e) {
             }
@@ -269,8 +270,8 @@ public class Server {
 
     private static void createThread(String[] command, DatagramPacket request) throws Exception {
         String[] spec = command[0].split(" ");
-        String fileName = spec[0];
-        String userName = spec[1];
+        String userName = spec[0];
+        String fileName = spec[1];
         System.out.println(userName + " issued CRT command");
         // Check if a thread with this title exists - yesError to user
         if (threadInfo.containsKey(fileName)) {

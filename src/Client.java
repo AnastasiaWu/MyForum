@@ -187,7 +187,7 @@ public class Client {
             return;
         }
         try {
-            String data = String.join(" ", "CRT", stringArrayToString(command), userName);
+            String data = String.join(" ", "CRT", userName, stringArrayToString(command));
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("TRUE")) {
@@ -518,8 +518,6 @@ public class Client {
         DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, serverPort);
         // actual send call
         clientSocket.send(sendPacket);
-        // set timeout
-        // clientSocket.setSoTimeout(600);
     };
 
     private static String UDPReceive() throws Exception {
