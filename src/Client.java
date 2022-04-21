@@ -6,7 +6,7 @@ public class Client {
     static DatagramSocket clientSocket;
     static InetAddress IPAddress;
     static int serverPort;
-
+    static Socket clientSocketTCP;
     static String userName;
 
     static int ACK = 0;
@@ -27,6 +27,8 @@ public class Client {
         // create socket which connects to server
         clientSocket = new DatagramSocket();
         clientSocket.setSoTimeout(2500);
+        // set the TCP socket
+        clientSocketTCP = new Socket(IPAddress, serverPort);
 
         // Authentication
         while (true) {
@@ -496,6 +498,7 @@ public class Client {
             UDPSend(data);
             String response = castResponse(UDPReceive());
             if (response.equals("TRUE")) {
+                clientSocket.close();
                 System.out.println("Goodbye");
                 return 0;
             }
@@ -546,12 +549,6 @@ public class Client {
     };
 
     private static void TCPSend(String fileName) throws Exception {
-        // prepare for sending
-        Socket clientSocketTCP = new Socket(IPAddress, serverPort);
-        // clientSocketTCP.setReuseAddress(true);
-        // SocketAddress address = new InetSocketAddress(IPAddress, serverPort);
-        // clientSocketTCP.bind(address);
-
         // Output to the socket data stream, we use DataOutputStream
         OutputStream outToServer = clientSocketTCP.getOutputStream();
         // Read from the binary file, we use FileInputStream
@@ -563,31 +560,22 @@ public class Client {
         }
         // Close the file
         inputStream.close();
-        // close the server
-        clientSocketTCP.close();
+        // Send info
+        outToServer.flush();
+        outToServer.close();
+
     }
 
     private static void TCPReceive(String fileName) throws Exception {
-        // Welcome socket
-        ServerSocket welcomeSocketTCP = new ServerSocket();
-        welcomeSocketTCP.setReuseAddress(true);
-        SocketAddress address = new InetSocketAddress(IPAddress, serverPort);
-        welcomeSocketTCP.bind(address);
-        // DEBUG
-        // System.out.println("TEST");
-        // accept connection from connection queue
-        Socket connectionSocket = welcomeSocketTCP.accept();
         // create read stream to get input
-        InputStream inFromClient = connectionSocket.getInputStream();
+        InputStream inFromClient = clientSocketTCP.getInputStream();
         // create the stream to store the input
         OutputStream outputStream = new FileOutputStream(fileName);
         for (int byteRead = inFromClient.read(); byteRead != -1; byteRead = inFromClient.read()) {
             outputStream.write(byteRead);
         }
         outputStream.close();
-        connectionSocket.close();
-        welcomeSocketTCP.close();
-
+        inFromClient.close();
         return;
     }
 

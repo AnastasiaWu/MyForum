@@ -5,6 +5,7 @@ import java.net.*;
 //  userName: {
 //      psw: falcon*solo,
 //      status: online,
+//      clientThread,
 //   },
 // }
 
@@ -26,7 +27,7 @@ public class Server {
     static DatagramSocket serverSocket;
     static InetAddress serverAddress;
     static int serverPort;
-
+    static ServerSocket welcomeSocketTCP;
     static int ACK = 0;
     static int Seq = 0;
 
@@ -39,7 +40,7 @@ public class Server {
     // private static final double LOSS_RATE = 0.8;
 
     private static class ClientThread extends Thread {
-        private final Socket clientSocket;
+        private Socket clientSocket;
         private String command = null;
         private String fileName = null;
 
@@ -83,12 +84,10 @@ public class Server {
                     }
                     // Close the file
                     inputStream.close();
-                    // close the server
-                    clientSocket.close();
                     clearSetting();
                 } else if (this.command.equals("TCPReceive")) {
                     // create read stream to get input
-                    InputStream inFromClient = clientSocket.getInputStream();
+                    InputStream inFromClient = this.clientSocket.getInputStream();
                     // create the stream to store the input
                     OutputStream outputStream = new FileOutputStream(fileName);
                     for (int byteRead = inFromClient.read(); byteRead != -1; byteRead = inFromClient.read()) {
@@ -96,8 +95,6 @@ public class Server {
                     }
                     // Close the file
                     outputStream.close();
-                    // close the server
-                    clientSocket.close();
                     clearSetting();
                 }
             } catch (Exception e) {
@@ -119,9 +116,14 @@ public class Server {
         // Socket settle
         serverSocket = new DatagramSocket(null);
         serverSocket.setReuseAddress(true);
-
         SocketAddress socketAddress = new InetSocketAddress(serverAddress, serverPort);
         serverSocket.bind(socketAddress);
+
+        // Welcome socket
+        welcomeSocketTCP = new ServerSocket();
+        welcomeSocketTCP.setReuseAddress(true);
+        SocketAddress address = new InetSocketAddress(serverAddress, serverPort);
+        welcomeSocketTCP.bind(address);
 
         // Read user info
         readCredentials();
@@ -193,6 +195,7 @@ public class Server {
                 Map user = new HashMap<>();
                 user.put("psw", userNP[1]);
                 user.put("status", "offline");
+                user.put("clientThread", null);
                 userInfo.put(userNP[0], user);
             }
 
@@ -249,6 +252,7 @@ public class Server {
             newUser.put("psw", ans[2]);
             newUser.put("status", "online");
             userInfo.put(ans[1], newUser);
+            userInfo.put(clientThread, null);
             // update the credentials.txt
             FileWriter myWriter = new FileWriter("credentials.txt", true);
             myWriter.write(ans[1] + " " + ans[2] + "\n");
@@ -571,11 +575,11 @@ public class Server {
         // Prepare the new file name
         String newFileName = threadName.concat("-" + fileName);
         // Receive the new file
-        TCPReceive(newFileName);
+        TCPReceive(newFileName, userName);
         // DEBUG
         // System.out.println("File created");
         // Update the database
-        files.put(fileName, newFileName);
+        files.put(fileName, userName);
         // Update in the thread
         FileWriter myWriter = new FileWriter(threadName, true);
         myWriter.write(userName + " uploaded " + fileName + "\n");
@@ -613,8 +617,8 @@ public class Server {
         }
         UDPSend(request, "TRUE");
         // Upload the file
-        String newFileName = (String) files.get(fileName);
-        TCPSend(newFileName);
+        String newFileName = String.join("-", threadName, fileName);
+        TCPSend(newFileName, threadName);
         // DEBUG
         // System.out.println("File created");
         System.out.println(fileName + " downloaded from Thread " + threadName);
@@ -656,7 +660,7 @@ public class Server {
             Iterator<String> iter = fileNames.iterator();
             while (iter.hasNext()) {
                 String fileName = iter.next();
-                String newFileName = (String) files.get(fileName);
+                String newFileName = String.join("-", threadName, fileName);
                 // DEBUG
                 // System.out.println(fileName + ": " + newFileName);
                 File tempFile = new File(newFileName);
@@ -753,32 +757,24 @@ public class Server {
         return response;
     };
 
-    private static void TCPSend(String fileName) throws Exception {
-        // prepare for sending
-        Socket clientSocketTCP = new Socket(serverAddress, serverPort);
-        // clientSocketTCP.setReuseAddress(true);
-        // SocketAddress address = new InetSocketAddress(serverAddress, serverPort);
-        // clientSocketTCP.bind(address);
-
-        ClientThread clientSocket = new ClientThread(clientSocketTCP);
+    private static void TCPSend(String fileName, String threadName) throws Exception {
+        Map thread = (Map) threadInfo.get(threadName);
+        Map files = (Map) thread.get("files");
+        String userName = (String) files.get(fileName);
+        Map user = (Map) userInfo.get(userName);
+        ClientThread clientSocket = (ClientThread) user.get("clientThread");
         clientSocket.setTCPSendTrue(fileName);
         clientSocket.run();
-
     }
 
-    private static void TCPReceive(String fileName) throws Exception {
-        // Welcome socket
-        ServerSocket welcomeSocketTCP = new ServerSocket();
-        welcomeSocketTCP.setReuseAddress(true);
-        SocketAddress address = new InetSocketAddress(serverAddress, serverPort);
-        welcomeSocketTCP.bind(address);
-
+    private static void TCPReceive(String fileName, String userName) throws Exception {
         // accept connection from connection queue
         Socket connectionSocket = welcomeSocketTCP.accept();
         ClientThread clientSocket = new ClientThread(connectionSocket);
+        Map user = (Map) userInfo.get(userName);
+        user.put("clientThread", clientSocket);
         clientSocket.setTCPReceiveTrue(fileName);
         clientSocket.run();
-        welcomeSocketTCP.close();
         return;
     }
 
