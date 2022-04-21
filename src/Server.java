@@ -570,7 +570,7 @@ public class Server {
         // DEBUG
         // System.out.println("File created");
         // Update the database
-        files.put("files", files.put(fileName, newFileName));
+        files.put(fileName, newFileName);
         // Update in the thread
         FileWriter myWriter = new FileWriter(threadName, true);
         myWriter.write(userName + " uploaded " + fileName + "\n");
@@ -578,6 +578,9 @@ public class Server {
         // Send feedback
         UDPSend(request, "TRUE");
         System.out.println(userName + " uploaded file " + fileName + " to " + threadName + " thread");
+        // DEBUG
+        // System.out.println("Files Now: " + files.keySet());
+        // System.out.println(files.size());
         return;
     }
 
@@ -631,7 +634,7 @@ public class Server {
         // User access right fail
         if (!((String) ((Map) threadInfo.get(threadName)).get("owner")).equals(userName)) {
             UDPSend(request, "NOPERMISSION");
-            System.out.println("Thread 3331 cannot be removed");
+            System.out.println("Thread " + threadName + " cannot be removed");
             return;
         }
         // Delete physical file
@@ -649,6 +652,8 @@ public class Server {
             while (iter.hasNext()) {
                 String fileName = iter.next();
                 String newFileName = (String) files.get(fileName);
+                // DEBUG
+                // System.out.println(fileName + ": " + newFileName);
                 File tempFile = new File(newFileName);
                 tempFile.delete();
             }
