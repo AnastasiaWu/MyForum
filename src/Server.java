@@ -755,10 +755,10 @@ public class Server {
 
     private static void TCPSend(String fileName) throws Exception {
         // prepare for sending
-        Socket clientSocketTCP = new Socket(null);
-        clientSocketTCP.setReuseAddress(true);
-        SocketAddress address = new InetSocketAddress(serverAddress, serverPort);
-        clientSocketTCP.bind(address);
+        Socket clientSocketTCP = new Socket(serverAddress, serverPort);
+        // clientSocketTCP.setReuseAddress(true);
+        // SocketAddress address = new InetSocketAddress(serverAddress, serverPort);
+        // clientSocketTCP.bind(address);
 
         ClientThread clientSocket = new ClientThread(clientSocketTCP);
         clientSocket.setTCPSendTrue(fileName);

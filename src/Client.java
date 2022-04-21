@@ -547,10 +547,10 @@ public class Client {
 
     private static void TCPSend(String fileName) throws Exception {
         // prepare for sending
-        Socket clientSocketTCP = new Socket(null);
-        clientSocketTCP.setReuseAddress(true);
-        SocketAddress address = new InetSocketAddress(IPAddress, serverPort);
-        clientSocketTCP.bind(address);
+        Socket clientSocketTCP = new Socket(IPAddress, serverPort);
+        // clientSocketTCP.setReuseAddress(true);
+        // SocketAddress address = new InetSocketAddress(IPAddress, serverPort);
+        // clientSocketTCP.bind(address);
 
         // Output to the socket data stream, we use DataOutputStream
         OutputStream outToServer = clientSocketTCP.getOutputStream();
