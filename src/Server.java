@@ -66,10 +66,10 @@ public class Server {
         public void run() {
             super.run();
             // DEBUG
-            String clientAddress = clientSocket.getInetAddress().getHostAddress();
-            int clientPort = clientSocket.getPort();
-            String clientID = "(" + clientAddress + ", " + clientPort + ")";
-            System.out.println("===== New connection created for user - " + clientID);
+            // String clientAddress = clientSocket.getInetAddress().getHostAddress();
+            // int clientPort = clientSocket.getPort();
+            // String clientID = "(" + clientAddress + ", " + clientPort + ")";
+            // System.out.println("===== New connection created for user - " + clientID);
             try {
                 if (this.command.equals("TCPSend")) {
                     // Output to the socket data stream, we use DataOutputStream
