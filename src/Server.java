@@ -33,8 +33,8 @@ public class Server {
 
     static String buffer;
 
-    static boolean newUserFlag = false;
-    static boolean creatingUser = true;
+    static boolean creatingUser = false;
+    static boolean authenticating = false;
     // DEBUG
     // private static final int AVERAGE_DELAY = 1000; // milliseconds
     // private static final double LOSS_RATE = 0.8;
@@ -58,12 +58,11 @@ public class Server {
         serverSocket = new DatagramSocket(serverPort);
         // Read user info
         readCredentials();
-
-        // Authentication
-        authentication();
-
         // Interaction with user
         while (true) {
+            if (userOnlineCount() == 0 && !authenticating) {
+                System.out.println("Waiting for clients");
+            }
             Map response = UDPReceive();
             if (response == null)
                 continue;
@@ -76,6 +75,9 @@ public class Server {
             String[] spec = (String[]) commands.get("value");
 
             switch (command) {
+                case "AUTH":
+                    authentication(spec, request);
+                    break;
                 case "CRT":
                     createThread(spec, request);
                     break;
@@ -105,7 +107,6 @@ public class Server {
                     break;
                 case "XIT":
                     exit(spec, request);
-                    authentication();
                     break;
                 default:
                     // show error message
@@ -132,81 +133,74 @@ public class Server {
         }
     }
 
-    private static void authentication() throws Exception {
-        System.out.println("Waiting for clients");
-        while (true) {
-            if (authentication_validation()) {
-                break;
+    private static void authentication(String[] spec, DatagramPacket request) throws Exception {
+        if (!authenticating)
+            System.out.println("Client authenticating");
+        authenticating = true;
+        String[] ans = spec[0].split(" ");
+        if (ans[0].equals("name")) {
+            authentication_name(ans, request);
+        } else if (ans[0].equals("psw")) {
+            if (authentication_psw(ans, request)) {
+                authenticating = false;
             }
         }
     }
 
-    private static boolean authentication_validation() throws Exception {
-
-        Map response = UDPReceive();
-        if (response == null)
+    private static boolean authentication_name(String[] ans, DatagramPacket request) throws Exception {
+        if (ans == null || ans.length == 0)
             return false;
-        DatagramPacket request = (DatagramPacket) response.get("request");
-        String content = castResponse((String) response.get("content"));
-        String[] ans = content.split(" ");
+        if (userInfo.containsKey(ans[1])) {
+            Map user = (Map) userInfo.get(ans[1]);
+            // DEBUG
+            // System.out.println(ans[1]);
+            if (((String) user.get("status")).equals("online")) {
+                UDPSend(request, "ONLINE");
+                System.out.println("User already logged in");
+                return false;
+            } else {
+                UDPSend(request, "TRUE");
+                return false;
+            }
+        } else {
+            UDPSend(request, "NEWUSER");
+            System.out.println("New user");
+            creatingUser = true;
+            return true;
+        }
         // Match the username
         // DEBUG
         // System.out.println(ans[0]);
-        if (ans[0].equals("name")) {
-            // name authentication
-            if (!newUserFlag) {
-                System.out.println("Client authenticating");
-                newUserFlag = true;
-            }
-            if (userInfo.containsKey(ans[1])) {
-                Map user = (Map) userInfo.get(ans[1]);
-                // DEBUG
-                // System.out.println(ans[1]);
-                if (((String) user.get("status")).equals("online")) {
-                    UDPSend(request, "ONLINE");
-                    return false;
-                } else {
-                    UDPSend(request, "TRUE");
-                    return false;
-                }
-            } else {
-                UDPSend(request, "NEWUSER");
-                System.out.println("New user");
-                creatingUser = true;
-                return false;
-            }
-        } else if (ans[0].equals("psw")) {
-            if (creatingUser) {
-                // creating user
-                // update the database
-                Map newUser = new HashMap<>();
-                newUser.put("psw", ans[2]);
-                newUser.put("status", "online");
-                userInfo.put(ans[1], newUser);
-                // update the credentials.txt
-                FileWriter myWriter = new FileWriter("credentials.txt", true);
-                myWriter.write(ans[1] + " " + ans[2] + "\n");
-                myWriter.close();
-                // Send feedback
-                UDPSend(request, "TRUE");
-                System.out.println(ans[1] + " successfully logged in");
-                newUserFlag = false;
-                creatingUser = false;
-                return true;
-            }
-            // password authentication
-            Map user = (Map) userInfo.get(ans[1]);
-            if (((String) user.get("psw")).equals(ans[2])) {
-                user.put("status", "online");
-                UDPSend(request, "TRUE");
-                System.out.println(ans[1] + " successfully logged in");
-                newUserFlag = false;
-                creatingUser = false;
-                return true;
-            }
-            UDPSend(request, "FALSE");
-            System.out.println("Incorrect password");
+    }
+
+    private static boolean authentication_psw(String[] ans, DatagramPacket request) throws Exception {
+        if (creatingUser) {
+            // creating user
+            // update the database
+            Map newUser = new HashMap<>();
+            newUser.put("psw", ans[2]);
+            newUser.put("status", "online");
+            userInfo.put(ans[1], newUser);
+            // update the credentials.txt
+            FileWriter myWriter = new FileWriter("credentials.txt", true);
+            myWriter.write(ans[1] + " " + ans[2] + "\n");
+            myWriter.close();
+            // Send feedback
+            UDPSend(request, "TRUE");
+            System.out.println(ans[1] + " successfully logged in");
+            creatingUser = false;
+            return true;
         }
+        // password authentication
+        Map user = (Map) userInfo.get(ans[1]);
+        if (((String) user.get("psw")).equals(ans[2])) {
+            user.put("status", "online");
+            UDPSend(request, "TRUE");
+            System.out.println(ans[1] + " successfully logged in");
+            return true;
+        }
+        UDPSend(request, "FALSE");
+        System.out.println("Incorrect password");
         return false;
     }
 
@@ -282,7 +276,7 @@ public class Server {
         String threadName = spec[1];
         String messageID = spec[2];
         // DEBUG
-        System.out.println(threadName + " " + userName + " " + messageID);
+        // System.out.println(threadName + " " + userName + " " + messageID);
 
         System.out.println(userName + " issued DLT command");
 
@@ -300,6 +294,7 @@ public class Server {
         String currentLine;
         boolean exist = false;
         boolean right = false;
+        int counter = 0;
         while ((currentLine = reader.readLine()) != null) {
             // Invalid message ID
             // DEBUG
@@ -312,8 +307,17 @@ public class Server {
                     continue;
                 }
             }
+            // count the line number
+            String[] line = currentLine.split(" ");
+            if (stringIsInteger(line[0]))
+                counter++;
+            // DEBUG
+            // System.out.println(counter);
             // trim newline
             currentLine.trim();
+            if (exist && right && stringIsInteger(line[0])) {
+                currentLine = currentLine.replace(line[0], Integer.toString(counter));
+            }
             writer.write(currentLine + System.getProperty("line.separator"));
         }
         writer.close();
@@ -333,6 +337,10 @@ public class Server {
             return;
         } else if (rename) {
             UDPSend(request, "TRUE");
+            // update the counter
+            Map thread = (Map) threadInfo.get(threadName);
+            int threadCount = (int) thread.get("counter");
+            thread.put("counter", threadCount--);
             System.out.println("Message has been deleted");
         } else {
             System.out.println("File rename failed");
@@ -438,16 +446,20 @@ public class Server {
         Map thread = (Map) threadInfo.get(threadName);
         // Thread empty
         if ((int) thread.get("counter") == 0) {
-            UDPSend(request, "EMPTY");
-            System.out.println("Thread " + threadName + " read");
-            return;
         }
         StringBuilder sb = new StringBuilder();
         BufferedReader reader = new BufferedReader(new FileReader(threadName));
         String currentLine;
         // get rid of the first line
         currentLine = reader.readLine();
-
+        // Check if first line exist
+        if ((currentLine = reader.readLine()) == null) {
+            UDPSend(request, "EMPTY");
+            System.out.println("Thread " + threadName + " read");
+            return;
+        } else {
+            sb.append(currentLine + "\n");
+        }
         while ((currentLine = reader.readLine()) != null) {
             sb.append(currentLine + "\n");
         }
@@ -477,11 +489,13 @@ public class Server {
             System.out.println("Thread " + (String) threadName + " does not exist");
             return;
         }
+
         Map thread = (Map) threadInfo.get(threadName);
         Map files = (Map) thread.get("files");
         // File already exist
         if (files != null && files.containsKey(fileName)) {
             UDPSend(request, "FILEEXIST");
+            System.out.println("File already uploaded");
             return;
         }
         UDPSend(request, "TRUE");
@@ -719,7 +733,7 @@ public class Server {
 
     // split the command sign and the rest => ['CRT', '3331 Network is awesome']
     private static Map commandParse(String command) {
-        List<String> commandList = Arrays.asList("CRT", "MSG", "LST", "RDT", "EDT", "DLT", "RMV", "UPD", "DWN",
+        List<String> commandList = Arrays.asList("AUTH", "CRT", "MSG", "LST", "RDT", "EDT", "DLT", "RMV", "UPD", "DWN",
                 "XIT");
         Map result = null;
         for (int i = 0; i < commandList.size(); i++) {
@@ -768,4 +782,31 @@ public class Server {
         return sb.toString();
     }
 
+    private static int userOnlineCount() throws Exception {
+        if (userInfo == null)
+            return 0;
+        int count = 0;
+        Set<String> entries = (Set<String>) userInfo.keySet();
+        for (String entry : entries) {
+            Map user = (Map) userInfo.get(entry);
+            if (((String) user.get("status")).equals("online")) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean stringIsInteger(String s) {
+        // source:
+        // https://stackoverflow.com/questions/5439529/determine-if-a-string-is-an-integer-in-java
+        try {
+            Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+        // only got here if we didn't return false
+        return true;
+    }
 }

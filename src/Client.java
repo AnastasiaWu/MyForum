@@ -117,14 +117,13 @@ public class Client {
 
     private static boolean authentication_name(String name) throws Exception {
         try {
-            UDPSend(String.join(" ", "name", name));
+            UDPSend(String.join(" ", "AUTH", "name", name));
             String response = castResponse(UDPReceive());
+            userName = name;
             if (response.equals("TRUE")) {
-                userName = name;
                 return true;
             } else if (response.equals("NEWUSER")) {
                 creatingNewUser = true;
-                userName = name;
                 return true;
             } else if (response.equals("ONLINE")) {
                 System.out.println(userName + " has already logged in");
@@ -144,7 +143,7 @@ public class Client {
 
     private static boolean authentication_psw(String psw) throws Exception {
         try {
-            UDPSend(String.join(" ", "psw", userName, psw));
+            UDPSend(String.join(" ", "AUTH", "psw", userName, psw));
             String response = castResponse(UDPReceive());
             if (response.equals("TRUE")) {
                 System.out.println("Welcome to the forum");
@@ -381,6 +380,12 @@ public class Client {
         String[] ans = command[0].split(" ");
         String threadName = ans[0];
         String fileName = ans[1];
+        // File name invalid
+        File file = new File(fileName);
+        if (!file.exists()) {
+            System.out.println("No such file exists in current directory");
+            return;
+        }
         try {
             String data = String.join(" ", "UPD", userName, stringArrayToString(command));
             UDPSend(data);
