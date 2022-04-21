@@ -24,8 +24,7 @@ public class Server {
     static ArrayList clientThread = new ArrayList<HashMap>();
 
     static DatagramSocket serverSocket;
-
-    static InetAddress IPAddress;
+    static InetAddress serverAddress;
     static int serverPort;
 
     static int ACK = 0;
@@ -47,11 +46,7 @@ public class Server {
         }
 
         // Define socket parameters, address and Port#
-        IPAddress = InetAddress.getByName("localhost");
-        if (args.length != 1) {
-            System.out.println("Required arguments: port");
-            return;
-        }
+        serverAddress = InetAddress.getByName("localhost");
         serverPort = Integer.parseInt(args[0]);
 
         // Socket settle
