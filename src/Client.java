@@ -413,8 +413,8 @@ public class Client {
 
         } catch (SocketTimeoutException e) {
             // Timeout, resent packet
-            System.out.println("Warning: Packet Timeout");
-            uploadFile(command);
+            // System.out.println("Warning: Packet Timeout");
+            // uploadFile(command);
             return;
         } catch (Exception e) {
             System.out.println("ERROR");
