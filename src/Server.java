@@ -117,7 +117,11 @@ public class Server {
         serverAddress = InetAddress.getByName("localhost");
         serverPort = Integer.parseInt(args[0]);
         // Socket settle
-        serverSocket = new DatagramSocket(serverPort);
+        serverSocket = new DatagramSocket(null);
+        serverSocket.setReuseAddress(true);
+
+        SocketAddress socketAddress = new InetSocketAddress(serverAddress, serverPort);
+        serverSocket.bind(socketAddress);
 
         // Read user info
         readCredentials();
@@ -751,7 +755,11 @@ public class Server {
 
     private static void TCPSend(String fileName) throws Exception {
         // prepare for sending
-        Socket clientSocketTCP = new Socket("localhost", serverPort);
+        Socket clientSocketTCP = new Socket(null);
+        clientSocketTCP.setReuseAddress(true);
+        SocketAddress address = new InetSocketAddress(serverAddress, serverPort);
+        clientSocketTCP.bind(address);
+
         ClientThread clientSocket = new ClientThread(clientSocketTCP);
         clientSocket.setTCPSendTrue(fileName);
         clientSocket.run();
@@ -760,7 +768,11 @@ public class Server {
 
     private static void TCPReceive(String fileName) throws Exception {
         // Welcome socket
-        ServerSocket welcomeSocketTCP = new ServerSocket(serverPort);
+        ServerSocket welcomeSocketTCP = new ServerSocket();
+        welcomeSocketTCP.setReuseAddress(true);
+        SocketAddress address = new InetSocketAddress(serverAddress, serverPort);
+        welcomeSocketTCP.bind(address);
+
         // accept connection from connection queue
         Socket connectionSocket = welcomeSocketTCP.accept();
         ClientThread clientSocket = new ClientThread(connectionSocket);

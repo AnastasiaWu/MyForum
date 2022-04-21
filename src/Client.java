@@ -136,6 +136,7 @@ public class Client {
             return true;
         } catch (Exception e) {
             System.out.println("ERROR");
+            e.printStackTrace();
         }
         return false;
 
@@ -159,6 +160,7 @@ public class Client {
             return true;
         } catch (Exception e) {
             System.out.println("ERROR");
+            e.printStackTrace();
         }
         return false;
     }
@@ -414,6 +416,7 @@ public class Client {
             return;
         } catch (Exception e) {
             System.out.println("ERROR");
+            e.printStackTrace();
         }
     }
 
@@ -449,7 +452,7 @@ public class Client {
         } catch (Exception e) {
             // DEBUG
             System.out.println("ERROR");
-            // e.printStackTrace();
+            e.printStackTrace();
         }
     }
 
@@ -544,7 +547,11 @@ public class Client {
 
     private static void TCPSend(String fileName) throws Exception {
         // prepare for sending
-        Socket clientSocketTCP = new Socket("localhost", serverPort);
+        Socket clientSocketTCP = new Socket(null);
+        clientSocketTCP.setReuseAddress(true);
+        SocketAddress address = new InetSocketAddress(IPAddress, serverPort);
+        clientSocketTCP.bind(address);
+
         // Output to the socket data stream, we use DataOutputStream
         OutputStream outToServer = clientSocketTCP.getOutputStream();
         // Read from the binary file, we use FileInputStream
@@ -562,7 +569,10 @@ public class Client {
 
     private static void TCPReceive(String fileName) throws Exception {
         // Welcome socket
-        ServerSocket welcomeSocketTCP = new ServerSocket(serverPort);
+        ServerSocket welcomeSocketTCP = new ServerSocket();
+        welcomeSocketTCP.setReuseAddress(true);
+        SocketAddress address = new InetSocketAddress(IPAddress, serverPort);
+        welcomeSocketTCP.bind(address);
         // DEBUG
         // System.out.println("TEST");
         // accept connection from connection queue
