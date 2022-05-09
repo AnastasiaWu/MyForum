@@ -21,7 +21,7 @@ import java.net.*;
 
 public class Server {
     static Map threadInfo = new HashMap<>();
-    static Map userInfo = new HashMap<>();
+    static Map<String, Map> userInfo = new HashMap<String, Map>();
     static ArrayList clientThread = new ArrayList<HashMap>();
 
     static DatagramSocket serverSocket;
@@ -251,8 +251,8 @@ public class Server {
             Map newUser = new HashMap<>();
             newUser.put("psw", ans[2]);
             newUser.put("status", "online");
+            newUser.put("clientThread", null);
             userInfo.put(ans[1], newUser);
-            userInfo.put(clientThread, null);
             // update the credentials.txt
             FileWriter myWriter = new FileWriter("credentials.txt", true);
             myWriter.write(ans[1] + " " + ans[2] + "\n");
@@ -412,7 +412,8 @@ public class Server {
             // update the counter
             Map thread = (Map) threadInfo.get(threadName);
             int threadCount = (int) thread.get("counter");
-            thread.put("counter", threadCount--);
+            threadCount = threadCount - 1;
+            thread.put("counter", threadCount);
             System.out.println("Message has been deleted");
         } else {
             System.out.println("File rename failed");
@@ -618,7 +619,16 @@ public class Server {
         UDPSend(request, "TRUE");
         // Upload the file
         String newFileName = String.join("-", threadName, fileName);
-        TCPSend(newFileName, threadName);
+        Map user = (Map) userInfo.get(userName);
+        ClientThread clientSocket = (ClientThread) user.get("clientThread");
+        if (clientSocket == null) {
+            UDPSend(request, "NEEDCONNECTION");
+            Socket connectionSocket = TCPBuildConnection();
+            clientSocket = new ClientThread(connectionSocket);
+        } else {
+            UDPSend(request, "NONEED");
+        }
+        TCPSend(newFileName, clientSocket);
         // DEBUG
         // System.out.println("File created");
         System.out.println(fileName + " downloaded from Thread " + threadName);
@@ -743,7 +753,7 @@ public class Server {
         // check if the packet is duplicate
         if (ACK == seqReceive + lengthReceive) {
             // This is a duplicate packet, drop it, resent packet
-            System.out.println("Warning: DUP packet");
+            // System.out.println("Warning: DUP packet");
             UDPSend(request);
             return null;
         } else {
@@ -757,25 +767,25 @@ public class Server {
         return response;
     };
 
-    private static void TCPSend(String fileName, String threadName) throws Exception {
-        Map thread = (Map) threadInfo.get(threadName);
-        Map files = (Map) thread.get("files");
-        String userName = (String) files.get(fileName);
-        Map user = (Map) userInfo.get(userName);
-        ClientThread clientSocket = (ClientThread) user.get("clientThread");
+    private static void TCPSend(String fileName, ClientThread clientSocket) throws Exception {
         clientSocket.setTCPSendTrue(fileName);
         clientSocket.run();
     }
 
     private static void TCPReceive(String fileName, String userName) throws Exception {
-        // accept connection from connection queue
-        Socket connectionSocket = welcomeSocketTCP.accept();
+        Socket connectionSocket = TCPBuildConnection();
         ClientThread clientSocket = new ClientThread(connectionSocket);
         Map user = (Map) userInfo.get(userName);
         user.put("clientThread", clientSocket);
         clientSocket.setTCPReceiveTrue(fileName);
         clientSocket.run();
         return;
+    }
+
+    private static Socket TCPBuildConnection() throws Exception {
+        // accept connection from connection queue
+        Socket connectionSocket = welcomeSocketTCP.accept();
+        return connectionSocket;
     }
 
     // HELPER FUNCTION
@@ -848,9 +858,9 @@ public class Server {
         if (userInfo == null)
             return 0;
         int count = 0;
-        Set<String> entries = (Set<String>) userInfo.keySet();
-        for (String entry : entries) {
-            Map user = (Map) userInfo.get(entry);
+
+        for (String key : userInfo.keySet()) {
+            Map user = (Map) userInfo.get(key);
             if (((String) user.get("status")).equals("online")) {
                 count++;
             }
@@ -870,5 +880,9 @@ public class Server {
         }
         // only got here if we didn't return false
         return true;
+    }
+
+    private static String getType(Object a) {
+        return a.getClass().toString();
     }
 }

@@ -137,8 +137,8 @@ public class Client {
             authentication_name(name);
             return true;
         } catch (Exception e) {
-            System.out.println("ERROR");
-            e.printStackTrace();
+            // System.out.println("ERROR");
+            // e.printStackTrace();
         }
         return false;
 
@@ -161,8 +161,8 @@ public class Client {
             authentication_psw(psw);
             return true;
         } catch (Exception e) {
-            System.out.println("ERROR");
-            e.printStackTrace();
+            // System.out.println("ERROR");
+            // e.printStackTrace();
         }
         return false;
     }
@@ -207,7 +207,7 @@ public class Client {
             createThread(command);
             return;
         } catch (Exception e) {
-            System.out.println("ERROR");
+            // System.out.println("ERROR");
         }
     }
 
@@ -234,7 +234,7 @@ public class Client {
             postMessage(command);
             return;
         } catch (Exception e) {
-            System.out.println("ERROR");
+            // System.out.println("ERROR");
         }
     }
 
@@ -269,7 +269,7 @@ public class Client {
             deleteMessage(command);
             return;
         } catch (Exception e) {
-            System.out.println("ERROR");
+            // System.out.println("ERROR");
         }
     }
 
@@ -305,7 +305,7 @@ public class Client {
             editMessage(command);
             return;
         } catch (Exception e) {
-            System.out.println("ERROR");
+            // System.out.println("ERROR");
         }
     }
 
@@ -340,7 +340,7 @@ public class Client {
             listThreads(command);
             return;
         } catch (Exception e) {
-            System.out.println("ERROR");
+            // System.out.println("ERROR");
         }
     }
 
@@ -372,7 +372,7 @@ public class Client {
             readThread(command);
             return;
         } catch (Exception e) {
-            System.out.println("ERROR");
+            // System.out.println("ERROR");
         }
     }
 
@@ -401,6 +401,7 @@ public class Client {
                 System.out.println("File already exist");
                 return;
             } else {
+                clientSocketTCP.getOutputStream();
                 // Transfer the file
                 TCPSend(fileName);
             }
@@ -417,8 +418,8 @@ public class Client {
             // uploadFile(command);
             return;
         } catch (Exception e) {
-            System.out.println("ERROR");
-            e.printStackTrace();
+            // System.out.println("ERROR");
+            // e.printStackTrace();
         }
     }
 
@@ -441,6 +442,12 @@ public class Client {
                 System.out.println("File does not exist in Thread " + threadName);
                 return;
             } else {
+                response = castResponse(UDPReceive());
+                if (response.equals("NEEDCONNECTION")) {
+
+                    // Output to the socket data stream, we use DataOutputStream
+                    clientSocketTCP.getOutputStream();
+                }
                 // Receive the file
                 TCPReceive(fileName);
             }
@@ -453,8 +460,8 @@ public class Client {
             return;
         } catch (Exception e) {
             // DEBUG
-            System.out.println("ERROR");
-            e.printStackTrace();
+            // System.out.println("ERROR");
+            // e.printStackTrace();
         }
     }
 
@@ -484,7 +491,7 @@ public class Client {
             removeThread(command);
             return;
         } catch (Exception e) {
-            System.out.println("ERROR");
+            // System.out.println("ERROR");
         }
     }
 
@@ -508,7 +515,7 @@ public class Client {
             removeThread(command);
             return 0;
         } catch (Exception e) {
-            System.out.println("ERROR");
+            // System.out.println("ERROR");
         }
         return 1;
     }
